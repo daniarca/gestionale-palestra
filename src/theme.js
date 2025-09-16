@@ -1,3 +1,5 @@
+// File: src/theme.js
+
 import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
@@ -45,7 +47,17 @@ const theme = createTheme({
           borderRadius: '12px',
         }
       }
-    }
+    }, // <-- LA VIRGOLA MANCANTE ERA QUI
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          '&:hover': {
+            backgroundColor: '#A78BFA',
+            color: '#1E1E2E',
+          },
+        },
+      },
+    },
   }
 });
 
