@@ -1,22 +1,50 @@
-import React, { useMemo } from 'react';
-import { Typography, Grid, Box, CircularProgress, Paper, List, ListItem, ListItemText, Divider, Alert } from '@mui/material';
+// File: src/pages/DashboardPage.jsx
+
+import React, { useMemo, useState, useEffect } from 'react';
+import { Typography, Grid, Box, CircularProgress, Paper, List, ListItem, ListItemText, Divider, Alert, Avatar, ListItemAvatar } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import PeopleIcon from '@mui/icons-material/People';
 import WarningIcon from '@mui/icons-material/Warning';
-import EventBusyIcon from '@mui/icons-material/EventBusy';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PaymentIcon from '@mui/icons-material/Payment';
 import StatCard from '../components/StatCard.jsx';
+import { collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../firebase.js';
+
+// Funzione helper per accedere a proprietà annidate in modo sicuro
+const getNestedValue = (obj, path) => {
+  if (!path) return undefined;
+  return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
+};
 
 function DashboardPage({ iscritti, loading }) {
-  
+  const [pagamenti, setPagamenti] = useState([]);
+
+  useEffect(() => {
+    const fetchPagamenti = async () => {
+      const querySnapshot = await getDocs(query(collection(db, "pagamenti")));
+      setPagamenti(querySnapshot.docs.map(doc => doc.data()));
+    };
+    if (!loading) fetchPagamenti();
+  }, [loading]);
+
   const stats = useMemo(() => {
-    // Controllo di sicurezza: se 'iscritti' non è ancora un array, ritorna valori di default
-    if (!iscritti) {
-      return { totaleIscritti: 0, certificatiInScadenza: [], abbonamentiScaduti: [], pagamentiInSospeso: [] };
-    }
+    if (!iscritti) return { totaleIscritti: 0, certificatiInScadenza: [], pagamentiDaSaldare: [] };
 
     const oggi = new Date();
-    oggi.setHours(0, 0, 0, 0);
+    const meseCorrente = oggi.getMonth();
+    
+    const pagamentiMeseCorrente = pagamenti.filter(p => new Date(p.dataPagamento).getMonth() === meseCorrente && p.tipo === 'Quota Mensile');
+    const pagamentiRaggruppati = pagamentiMeseCorrente.reduce((acc, p) => {
+      acc[p.iscrittoId] = (acc[p.iscrittoId] || 0) + p.cifra;
+      return acc;
+    }, {});
+
+    const pagamentiDaSaldare = iscritti.filter(iscritto => {
+      const quotaPrevista = Number(iscritto.quotaMensile) || 0;
+      if (quotaPrevista === 0) return false;
+      const totalePagato = pagamentiRaggruppati[iscritto.id] || 0;
+      return totalePagato < quotaPrevista;
+    });
 
     const certificatiInScadenza = iscritti.filter(iscritto => {
       if (!iscritto.certificatoMedico?.scadenza) return false;
@@ -25,67 +53,84 @@ function DashboardPage({ iscritti, loading }) {
       const scadenza = new Date(iscritto.certificatoMedico.scadenza);
       return scadenza >= oggi && scadenza <= dataLimite;
     });
-    
-    const abbonamentiScaduti = iscritti.filter(iscritto => {
-      if (!iscritto.abbonamento?.scadenza) return false;
-      const scadenza = new Date(iscritto.abbonamento.scadenza);
-      return scadenza < oggi;
-    });
-
-    const pagamentiInSospeso = iscritti.filter(iscritto => iscritto.statoPagamento === 'In Sospeso');
 
     return {
       totaleIscritti: iscritti.length,
       certificatiInScadenza,
-      abbonamentiScaduti,
-      pagamentiInSospeso,
+      pagamentiDaSaldare,
     };
-  }, [iscritti]);
+  }, [iscritti, pagamenti]);
 
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
   }
+
+  const renderList = (title, items, emptyText, icon, color, secondaryField) => (
+    <Paper sx={{ p: 2, borderRadius: 4, height: '100%' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        {icon}
+        <Typography variant="h6" sx={{ ml: 1 }}>{title} ({items.length})</Typography>
+      </Box>
+      <Divider />
+      {items.length > 0 ? (
+        <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
+          {items.map(iscritto => {
+            const secondaryText = getNestedValue(iscritto, secondaryField);
+            return (
+              <ListItem key={iscritto.id} component={RouterLink} to={`/iscritti?filtro=singolo&id=${iscritto.id}`} button>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: color }}>
+                    {iscritto.nome ? iscritto.nome[0] : ''}
+                    {iscritto.cognome ? iscritto.cognome[0] : ''}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText 
+                  primary={`${iscritto.nome} ${iscritto.cognome}`}
+                  secondary={secondaryField.includes('scadenza') ? `Scadenza: ${new Date(secondaryText).toLocaleDateString('it-IT')}` : `Quota: ${secondaryText}€`}
+                />
+              </ListItem>
+            );
+          })}
+        </List>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ pt: 2, textAlign: 'center' }}>{emptyText}</Typography>
+      )}
+    </Paper>
+  );
 
   return (
     <Box>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Dashboard
       </Typography>
-
       {iscritti.length === 0 ? (
         <Alert severity="info" sx={{ mt: 2 }}>
-          Nessun iscritto trovato. Aggiungi il primo socio dalla pagina "Iscritti" per vedere le statistiche.
+          Nessun iscritto trovato.
         </Alert>
       ) : (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={7}>
-            <Paper sx={{ p: 2, borderRadius: 4, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>Lista Abbonamenti Scaduti</Typography>
-              <Divider sx={{ mb: 1 }}/>
-              {stats.abbonamentiScaduti.length > 0 ? (
-                <List dense>
-                  {stats.abbonamentiScaduti.map(iscritto => (
-                    <ListItem key={iscritto.id}>
-                      <ListItemText 
-                        primary={`${iscritto.nome} ${iscritto.cognome}`}
-                        secondary={`Scaduto il: ${new Date(iscritto.abbonamento.scadenza).toLocaleDateString('it-IT')}`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ pt: 2 }}>Nessun abbonamento scaduto.</Typography>
-              )}
-            </Paper>
+          <Grid item xs={12}>
+            <StatCard title="Totale Iscritti Attivi" value={stats.totaleIscritti} icon={<PeopleIcon />} color="primary.main" />
           </Grid>
-
-          <Grid item xs={12} md={5}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={12}><StatCard title="Totale Iscritti" value={stats.totaleIscritti} icon={<PeopleIcon />} color="primary.main" /></Grid>
-              <Grid item xs={12} sm={6} md={12}><StatCard title="Certificati in Scadenza (30gg)" value={stats.certificatiInScadenza.length} icon={<WarningIcon />} color="warning.main" /></Grid>
-              <Grid item xs={12} sm={6} md={12}><StatCard title="Abbonamenti Scaduti" value={stats.abbonamentiScaduti.length} icon={<EventBusyIcon />} color="error.main" /></Grid>
-              <Grid item xs={12} sm={6} md={12}><StatCard title="Pagamenti in Sospeso" value={stats.pagamentiInSospeso.length} icon={<PaymentIcon />} color="info.main" /></Grid>
-            </Grid>
+          <Grid item xs={12} md={6}>
+            {renderList(
+              "Pagamenti da Saldare (Mese Corrente)",
+              stats.pagamentiDaSaldare,
+              "Nessun pagamento da saldare.",
+              <PaymentIcon color="error" />,
+              "error.main",
+              "quotaMensile"
+            )}
+          </Grid>
+          <Grid item xs={12} md={6}>
+            {renderList(
+              "Certificati in Scadenza (30gg)",
+              stats.certificatiInScadenza,
+              "Nessun certificato in scadenza.",
+              <WarningIcon color="warning" />,
+              "warning.main",
+              "certificatoMedico.scadenza"
+            )}
           </Grid>
         </Grid>
       )}

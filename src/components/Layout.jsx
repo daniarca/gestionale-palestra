@@ -6,6 +6,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import GroupsIcon from '@mui/icons-material/Groups';
+import BadgeIcon from '@mui/icons-material/Badge';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -46,6 +48,8 @@ function Layout({ children, notifications = [] }) {
           <List>
             <ListItemButton component={RouterLink} to="/"><ListItemIcon><DashboardIcon /></ListItemIcon><ListItemText primary="Dashboard" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/iscritti"><ListItemIcon><PeopleIcon /></ListItemIcon><ListItemText primary="Iscritti" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/gruppi"><ListItemIcon><GroupsIcon /></ListItemIcon><ListItemText primary="Gruppi" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/staff"><ListItemIcon><BadgeIcon /></ListItemIcon><ListItemText primary="Staff" /></ListItemButton>
             <Divider sx={{ my: 1 }} />
             <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
@@ -55,26 +59,14 @@ function Layout({ children, notifications = [] }) {
         <Toolbar />
         {children}
       </Box>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleNotificationsClose}
-      >
+      <Menu anchorEl={anchorEl} open={open} onClose={handleNotificationsClose}>
         {notifications.length > 0 ? (
           notifications.map(notif => (
-            <MenuItem 
-              key={notif.type} 
-              component={RouterLink}
-              to={`/iscritti?filtro=${notif.type}`}
-              onClick={handleNotificationsClose}
-            >
+            <MenuItem key={notif.type} component={RouterLink} to={`/iscritti?filtro=${notif.type}`} onClick={handleNotificationsClose}>
               {notif.message}
             </MenuItem>
           ))
-        ) : (
-          <MenuItem onClick={handleNotificationsClose}>Nessuna notifica</MenuItem>
-        )}
+        ) : (<MenuItem onClick={handleNotificationsClose}>Nessuna notifica</MenuItem>)}
       </Menu>
     </Box>
   );

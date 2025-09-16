@@ -1,3 +1,5 @@
+// File: src/components/IscrittoEditDialog.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 
@@ -39,18 +41,12 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         <Grid container spacing={2} sx={{ pt: 1 }}>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="nome" label="Nome" value={formData.nome || ''} onChange={handleChange}/></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="cognome" label="Cognome" value={formData.cognome || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="quotaIscrizione" label="Quota Iscrizione (€)" type="number" value={formData.quotaIscrizione || ''} onChange={handleChange}/></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="quotaMensile" label="Quota Mensile Prevista (€)" type="number" value={formData.quotaMensile || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={8}><TextField fullWidth margin="dense" name="luogoNascita" label="Luogo di Nascita" value={formData.luogoNascita || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={4}><TextField fullWidth margin="dense" name="dataNascita" label="Data di Nascita" type="date" value={formData.dataNascita || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} /></Grid>
-          <Grid item xs={12} sm={9}><TextField fullWidth margin="dense" name="via" label="Indirizzo (Via / Piazza)" value={formData.via || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={3}><TextField fullWidth margin="dense" name="numeroCivico" label="N. Civico" value={formData.numeroCivico || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={9}><TextField fullWidth margin="dense" name="residenza" label="Città di Residenza" value={formData.residenza || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={3}><TextField fullWidth margin="dense" name="cap" label="CAP" value={formData.cap || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="email" label="Email" value={formData.email || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="cellulare" label="Cellulare" value={formData.cellulare || ''} onChange={handleChange}/></Grid>
+          <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="scadenzaAbbonamento" label="Scadenza Abbonamento" type="date" value={formData.scadenzaAbbonamento || ''} onChange={handleChange} InputLabelProps={{ shrink: true }}/></Grid>
+          <Grid item xs={12} sm={6}><FormControl fullWidth margin="dense"><InputLabel>Sede</InputLabel><Select name="sede" label="Sede" value={formData.sede || 'Frascati'} onChange={handleChange}><MenuItem value="Frascati">Frascati</MenuItem><MenuItem value="Rocca Priora">Rocca Priora</MenuItem></Select></FormControl></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="codiceFiscale" label="Codice Fiscale Atleta" value={formData.codiceFiscale || ''} onChange={handleChange}/></Grid>
-          <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="codiceAssicurazione" label="Codice Assicurazione" value={formData.codiceAssicurazione || ''} onChange={handleChange}/></Grid>
+          <Grid item xs={12} sm={6}><FormControlLabel control={<Checkbox name="haCertificato" checked={formData.haCertificato || false} onChange={handleChange} />} label="Certificato Medico Presente" /></Grid>
+          {formData.haCertificato && (<Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="scadenzaCertificato" label="Scadenza Certificato" type="date" value={formData.scadenzaCertificato || ''} onChange={handleChange} InputLabelProps={{ shrink: true }}/></Grid>)}
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
