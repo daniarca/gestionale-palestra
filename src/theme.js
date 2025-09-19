@@ -5,58 +5,35 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     mode: 'dark',
-    primary: {
-      main: '#A78BFA', // Viola/Lavanda
-    },
-    success: {
-      main: '#A6E3A1', // Verde
-    },
-    warning: {
-      main: '#FAB387', // Arancione/Pesca
-    },
-    error: {
-      main: '#F38BA8', // Rosso/Rosa
-    },
-    info: {
-      main: '#89B4FA', // Blu
-    },
-    background: {
-      default: '#1E1E2E',
-      paper: '#313244',
-    },
-    text: {
-      primary: '#D9E0EE',
-      secondary: '#a6adc8'
-    }
+    primary: { main: '#5E81AC' },
+    secondary: { main: '#8FBCBB' },
+    success: { main: '#A3BE8C' },
+    warning: { main: '#EBCB8B' },
+    error: { main: '#BF616A' },
+    info: { main: '#88C0D0' },
+    background: { default: '#2E3440', paper: '#3B4252' },
+    text: { primary: '#ECEFF4', secondary: '#D8DEE9' },
+    divider: '#4C566A',
   },
   typography: {
-    fontFamily: 'Inter, sans-serif',
-    h4: { fontWeight: 700, fontSize: '2.2rem' },
+    fontFamily: 'Poppins, sans-serif', // <-- FONT AGGIORNATO
+    h4: { fontWeight: 700, fontSize: '2.125rem' },
     h5: { fontWeight: 600, fontSize: '1.5rem' },
     h6: { fontWeight: 600, fontSize: '1.25rem' },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 12, // Bordi più arrotondati
   },
   components: {
     MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 'bold',
-          borderRadius: '12px',
-        }
-      }
-    }, // <-- LA VIRGOLA MANCANTE ERA QUI
+      styleOverrides: { root: { textTransform: 'none', fontWeight: 'bold' } },
+      defaultProps: { disableElevation: true }
+    },
+    MuiPaper: {
+      styleOverrides: { root: { backgroundImage: 'none' } }
+    },
     MuiMenuItem: {
-      styleOverrides: {
-        root: {
-          '&:hover': {
-            backgroundColor: '#A78BFA',
-            color: '#1E1E2E',
-          },
-        },
-      },
+      styleOverrides: { root: { '&:hover': { backgroundColor: 'rgba(94, 129, 172, 0.2)', color: '#FFFFFF' } } },
     },
   }
 });

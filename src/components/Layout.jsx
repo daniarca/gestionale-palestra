@@ -1,3 +1,4 @@
+// File: src/components/Layout.jsx
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Box, Drawer, AppBar, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, Typography, Button, Divider, IconButton, Badge, Menu, MenuItem } from '@mui/material';
@@ -8,6 +9,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import GroupsIcon from '@mui/icons-material/Groups';
 import BadgeIcon from '@mui/icons-material/Badge';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -18,12 +20,10 @@ function Layout({ children, notifications = [] }) {
   const navigate = useNavigate();
   const auth = getAuth();
   const handleLogout = async () => { await signOut(auth); navigate('/login'); };
-
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleNotificationsClick = (event) => { setAnchorEl(event.currentTarget); };
   const handleNotificationsClose = () => { setAnchorEl(null); };
-  
   const totalNotifications = notifications.reduce((sum, notif) => sum + notif.count, 0);
 
   return (
@@ -33,11 +33,7 @@ function Layout({ children, notifications = [] }) {
           <Typography variant="h6" noWrap component="div">ASD GYM POINT</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>{currentUser?.email}</Typography>
-            <IconButton color="inherit" onClick={handleNotificationsClick}>
-              <Badge badgeContent={totalNotifications} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+            <IconButton color="inherit" onClick={handleNotificationsClick}><Badge badgeContent={totalNotifications} color="error"><NotificationsIcon /></Badge></IconButton>
             <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
           </Box>
         </Toolbar>
@@ -50,6 +46,7 @@ function Layout({ children, notifications = [] }) {
             <ListItemButton component={RouterLink} to="/iscritti"><ListItemIcon><PeopleIcon /></ListItemIcon><ListItemText primary="Iscritti" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/gruppi"><ListItemIcon><GroupsIcon /></ListItemIcon><ListItemText primary="Gruppi" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/staff"><ListItemIcon><BadgeIcon /></ListItemIcon><ListItemText primary="Staff" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/orario"><ListItemIcon><CalendarMonthIcon /></ListItemIcon><ListItemText primary="Orario Settimanale" /></ListItemButton>
             <Divider sx={{ my: 1 }} />
             <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
@@ -62,14 +59,11 @@ function Layout({ children, notifications = [] }) {
       <Menu anchorEl={anchorEl} open={open} onClose={handleNotificationsClose}>
         {notifications.length > 0 ? (
           notifications.map(notif => (
-            <MenuItem key={notif.type} component={RouterLink} to={`/iscritti?filtro=${notif.type}`} onClick={handleNotificationsClose}>
-              {notif.message}
-            </MenuItem>
+            <MenuItem key={notif.type} component={RouterLink} to={`/iscritti?filtro=${notif.type}`} onClick={handleNotificationsClose}>{notif.message}</MenuItem>
           ))
         ) : (<MenuItem onClick={handleNotificationsClose}>Nessuna notifica</MenuItem>)}
       </Menu>
     </Box>
   );
 }
-
 export default Layout;
