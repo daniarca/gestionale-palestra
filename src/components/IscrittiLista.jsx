@@ -1,11 +1,10 @@
+// File: src/components/IscrittiLista.jsx
+
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardActionArea, Typography, Grid, Box, Checkbox, Chip, Stack } from '@mui/material';
 
-function IscrittiLista({ iscritti = [], onSelect, selection = [], onViewDetails }) {
-  
-  const handleCardClick = (iscritto) => {
-    onViewDetails(iscritto);
-  };
+function IscrittiLista({ iscritti = [], onSelect, selection = [] }) {
   
   const handleCheckboxClick = (e, id) => {
     e.stopPropagation();
@@ -63,7 +62,11 @@ function IscrittiLista({ iscritti = [], onSelect, selection = [], onViewDetails 
                 borderColor: isSelected ? 'primary.main' : 'transparent'
               }}
             >
-              <CardActionArea onClick={() => handleCardClick(iscritto)} sx={{ flexGrow: 1, p: 2 }}>
+              <CardActionArea 
+                component={RouterLink} 
+                to={`/iscritti/${iscritto.id}`} 
+                sx={{ flexGrow: 1, p: 2 }}
+              >
                 <Checkbox
                   checked={isSelected}
                   onClick={(e) => handleCheckboxClick(e, iscritto.id)}

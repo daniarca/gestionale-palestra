@@ -8,20 +8,20 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme.js';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { NotificationProvider } from './context/NotificationContext.jsx'; // <-- NUOVO IMPORT
+import { NotificationProvider } from './context/NotificationContext.jsx';
 import { BrowserRouter } from 'react-router-dom';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <AuthProvider>
-          <NotificationProvider> {/* <-- NUOVO PROVIDER */}
+    <BrowserRouter>
+      <AuthProvider>
+        <NotificationProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
             <App />
-          </NotificationProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  </React.StrictMode>,
+          </ThemeProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
 );

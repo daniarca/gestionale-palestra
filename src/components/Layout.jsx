@@ -1,4 +1,3 @@
-// File: src/components/Layout.jsx
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Box, Drawer, AppBar, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, Typography, Button, Divider, IconButton, Badge, Menu, MenuItem } from '@mui/material';
@@ -9,7 +8,8 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import GroupsIcon from '@mui/icons-material/Groups';
 import BadgeIcon from '@mui/icons-material/Badge';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import OrarioIcon from '@mui/icons-material/CalendarMonth';
+import ArchivioIcon from '@mui/icons-material/Archive';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -44,9 +44,10 @@ function Layout({ children, notifications = [] }) {
           <List>
             <ListItemButton component={RouterLink} to="/"><ListItemIcon><DashboardIcon /></ListItemIcon><ListItemText primary="Dashboard" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/iscritti"><ListItemIcon><PeopleIcon /></ListItemIcon><ListItemText primary="Iscritti" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/archivio"><ListItemIcon><ArchivioIcon /></ListItemIcon><ListItemText primary="Archivio" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/gruppi"><ListItemIcon><GroupsIcon /></ListItemIcon><ListItemText primary="Gruppi" /></ListItemButton>
             <ListItemButton component={RouterLink} to="/staff"><ListItemIcon><BadgeIcon /></ListItemIcon><ListItemText primary="Staff" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/orario"><ListItemIcon><CalendarMonthIcon /></ListItemIcon><ListItemText primary="Orario Settimanale" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/orario"><ListItemIcon><OrarioIcon /></ListItemIcon><ListItemText primary="Orario" /></ListItemButton>
             <Divider sx={{ my: 1 }} />
             <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
@@ -66,4 +67,5 @@ function Layout({ children, notifications = [] }) {
     </Box>
   );
 }
+
 export default Layout;
