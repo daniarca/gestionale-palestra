@@ -12,6 +12,7 @@ import OrarioIcon from '@mui/icons-material/CalendarMonth';
 import ArchivioIcon from '@mui/icons-material/Archive';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
+// L'importazione di ThemeSelector è stata rimossa
 
 const drawerWidth = 240;
 
@@ -51,6 +52,7 @@ function Layout({ children, notifications = [] }) {
             <Divider sx={{ my: 1 }} />
             <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
+          {/* Il blocco di codice per ThemeSelector è stato rimosso */}
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>

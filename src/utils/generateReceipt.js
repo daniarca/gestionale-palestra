@@ -1,4 +1,4 @@
-// src/utils/generateReceipt.js
+// File: src/utils/generateReceipt.js
 
 import { numberToWords } from './numberToWords.js';
 
@@ -17,6 +17,7 @@ export function generateReceipt(iscritto, pagamenti, logoImage, firmaImage) {
   const annoCorrente = oggi.getFullYear();
   const meseCorrente = oggi.getMonth();
   const annoInizioCorrente = meseCorrente < 8 ? annoCorrente - 1 : annoCorrente;
+  
   const inizioAnnoSportivo = new Date(annoInizioCorrente, 8, 1);
   const fineAnnoSportivo = new Date(annoInizioCorrente + 1, 5, 30);
 
@@ -28,11 +29,15 @@ export function generateReceipt(iscritto, pagamenti, logoImage, firmaImage) {
   const totalePagato = pagamentiAnno.reduce((sum, p) => sum + p.cifra, 0);
 
   const [integerPart, decimalPart] = totalePagato.toFixed(2).split('.');
-  let importoInLettere = numberToWords(parseInt(integerPart, 10));
+  const importoInLettere = `${numberToWords(parseInt(integerPart, 10))}/${decimalPart}`;
 
-  if (parseInt(decimalPart, 10) > 0) {
-    importoInLettere += ` e ${numberToWords(parseInt(decimalPart, 10))} centesimi`;
-  }
+  const isMinorenne = iscritto.nomeGenitore && iscritto.nomeGenitore.trim() !== '';
+  const nomeVersante = isMinorenne ? iscritto.nomeGenitore : `${iscritto.nome} ${iscritto.cognome}`;
+  const cfVersante = isMinorenne ? iscritto.cfGenitore : iscritto.codiceFiscale;
+  
+  const beneficiarioText = isMinorenne 
+    ? `<div>Per conto del/della socio/a:</div>` 
+    : '';
 
   const printContent = `
     <html>
@@ -45,8 +50,8 @@ export function generateReceipt(iscritto, pagamenti, logoImage, firmaImage) {
           .header img.logo { max-width: 150px; height: auto; margin-bottom: 10px; }
           .receipt-title { font-size: 14pt; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #000; padding-bottom: 5px; }
           .info-block { margin-top: 20px; }
-          .info-block div { margin-bottom: 5px; }
-          .line { display: inline-block; border-bottom: 1px dashed #000; padding: 0 5px; }
+          .info-block div { margin-bottom: 10px; line-height: 1.5; }
+          .line { display: inline-block; border-bottom: 1px dashed #000; padding: 0 5px; font-weight: bold; }
           .signature-area { margin-top: 50px; text-align: center; }
           .signature-area img { max-width: 200px; height: auto; display: block; margin: 10px auto; }
           .center-text { text-align: center; }
@@ -63,19 +68,21 @@ export function generateReceipt(iscritto, pagamenti, logoImage, firmaImage) {
         </div>
         <div class="center-text receipt-title">RICEVUTA DI PAGAMENTO SOCIO (anno) ${annoCorrente}</div>
         <div class="info-block">
-          <div>Si certifica che Il/la Signor/a: <span class="line">${iscritto.nomeGenitore || `${iscritto.nome} ${iscritto.cognome}`}</span></div>
-          <div>Codice Fiscale: <span class="line">${iscritto.cfGenitore || iscritto.codiceFiscale}</span></div>
+          <div>Si certifica che Il/la Signor/a: <span class="line">${nomeVersante}</span></div>
+          <div>Codice Fiscale: <span class="line">${cfVersante}</span></div>
         </div>
         <div class="center-text receipt-title">HA VERSATO</div>
         <div class="info-block">
-          <div>La quota associativa di: €${totalePagato.toFixed(2)} (<span class="line">${importoInLettere} euro</span>)</div>
+          <div>La quota associativa di: €${totalePagato.toFixed(2)} (<span class="line">${importoInLettere}</span>)</div>
           <div>Per l'anno/stagione <span class="line">${annoInizioCorrente}/${annoInizioCorrente + 1}</span></div>
           <div>A titolo di ISCRIZIONE AD ATTIVITÀ SPORTIVA DILETTANTISTICA per la partecipazione al corso di Ginnastica Artistica.</div>
         </div>
+        
         <div class="info-block">
-          <div>Del/lla Figlio/a: <span class="line">${iscritto.nome} ${iscritto.cognome}</span></div>
+          ${beneficiarioText}
+          <div>Dati del socio iscritto: <span class="line">${iscritto.nome} ${iscritto.cognome}</span></div>
           <div>nato/a a <span class="line">${iscritto.luogoNascita || 'N/D'}</span> il <span class="line">${formatDate(iscritto.dataNascita)}</span></div>
-          <div>residente a <span class="line">${iscritto.residenza || 'N/D'}</span> in Via <span class="line">${iscritto.via || 'N/D'}</span>, N°. <span class="line">${iscritto.numeroCivico || 'N/D'}</span></div>
+          <div>residente a <span class="line">${iscritto.residenza || 'N/D'}</span>, in <span class="line">${iscritto.via || 'N/D'}</span> N°. <span class="line">${iscritto.numeroCivico || 'N/D'}</span></div>
         </div>
         <div class="footer">
           <p>${iscritto.sede || 'N/D'}, lì ${oggi.toLocaleDateString('it-IT')}</p>
