@@ -37,13 +37,15 @@ function StoricoPagamenti({ pagamenti = [], quotaMensile = 60 }) {
 
     const pagamentiPerMese = {};
     pagamentiFiltrati.forEach(p => {
-      if(p.tipo === 'Quota Mensile') {
+      // CORREZIONE: confronto insensibile alle maiuscole/minuscole
+      if(typeof p.tipo === 'string' && p.tipo.toLowerCase().includes('mensile')) {
         const mese = new Date(p.dataPagamento).getMonth();
         pagamentiPerMese[mese] = (pagamentiPerMese[mese] || 0) + p.cifra;
       }
     });
 
-    const iscrizionePagata = pagamentiFiltrati.find(p => p.tipo === 'Quota Iscrizione');
+    // CORREZIONE: ricerca insensibile alle maiuscole/minuscole per l'iscrizione
+    const iscrizionePagata = pagamentiFiltrati.find(p => typeof p.tipo === 'string' && p.tipo.toLowerCase().includes('iscrizione'));
 
     return { pagamentiPerMese, iscrizionePagata };
   }, [pagamenti, annoSelezionato]);
@@ -51,7 +53,7 @@ function StoricoPagamenti({ pagamenti = [], quotaMensile = 60 }) {
   const getMeseStatus = (meseIndex) => {
     const totalePagato = datiAnnoSelezionato.pagamentiPerMese[meseIndex] || 0;
     const qm = Number(quotaMensile) || 60;
-    if (totalePagato >= qm && qm > 0) return { color: 'success.main', label: `Pagato: ${totalePagato}€` };
+    if (qm > 0 && totalePagato >= qm) return { color: 'success.main', label: `Pagato: ${totalePagato}€` };
     if (totalePagato > 0) return { color: 'warning.main', label: `Acconto: ${totalePagato}€` };
     return { color: 'rgba(255, 255, 255, 0.05)', label: 'Non pagato' };
   };

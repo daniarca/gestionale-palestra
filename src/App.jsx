@@ -18,29 +18,46 @@ import './App.css';
 
 function MainApp() {
   const [iscritti, setIscritti] = useState([]);
+  const [gruppi, setGruppi] = useState([]);
+  const [pagamenti, setPagamenti] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchIscritti = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const q = query(collection(db, "iscritti"), where("stato", "==", "attivo"));
-      const querySnapshot = await getDocs(q);
-      const iscrittiList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setIscritti(iscrittiList);
-    } catch (error) { console.error("Errore: ", error); } 
-    finally { setLoading(false); }
+      const iscrittiQuery = query(collection(db, "iscritti"), where("stato", "==", "attivo"));
+      const gruppiQuery = query(collection(db, "gruppi"));
+      const pagamentiQuery = query(collection(db, "pagamenti"));
+      const staffQuery = query(collection(db, "staff"));
+
+      const [iscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] = await Promise.all([
+        getDocs(iscrittiQuery),
+        getDocs(gruppiQuery),
+        getDocs(pagamentiQuery),
+        getDocs(staffQuery)
+      ]);
+
+      setIscritti(iscrittiSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setGruppi(gruppiSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setPagamenti(pagamentiSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setStaff(staffSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+    } catch (error) {
+      console.error("Errore nel recupero dei dati principali:", error);
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { fetchIscritti(); }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleDataUpdate = () => {
-    fetchIscritti();
+    fetchData();
   };
   
-/**
- * Aggiunge un nuovo iscritto alla lista degli iscritti.
- * Ordina la lista degli iscritti in base al cognome.
- * @param {object} nuovoIscrittoConId - l'iscritto da aggiungere alla lista
- */
   const handleIscrittoAggiunto = (nuovoIscrittoConId) => {
     setIscritti(prevIscritti => 
       [...prevIscritti, nuovoIscrittoConId].sort((a, b) => a.cognome.localeCompare(b.cognome))
@@ -72,14 +89,14 @@ function MainApp() {
   return (
     <Layout notifications={notifications}>
       <Routes>
-        <Route path="/" element={<DashboardPage iscritti={iscritti} loading={loading} />} />
+        <Route path="/" element={<DashboardPage iscritti={iscritti} loading={loading} gruppi={gruppi} pagamenti={pagamenti} />} />
         <Route path="/iscritti" element={<IscrittiPage iscrittiList={iscritti} onDataUpdate={handleDataUpdate} onIscrittoAdded={handleIscrittoAggiunto} />} />
         <Route path="/iscritti/:iscrittoId" element={<SchedaSocioPage onDataUpdate={handleDataUpdate} />} />
         <Route path="/archivio" element={<ArchivioPage onDataUpdate={handleDataUpdate} />} />
         <Route path="/gruppi" element={<GruppiPage iscrittiList={iscritti} />} />
-        <Route path="/staff" element={<StaffPage />} />
-        <Route path="/report" element={<ReportPage />} />
-        <Route path="/orario" element={<OrarioPage />} />
+        <Route path="/staff" element={<StaffPage staffList={staff} />} />
+        <Route path="/report" element={<ReportPage pagamentiList={pagamenti} />} />
+        <Route path="/orario" element={<OrarioPage gruppiList={gruppi} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>

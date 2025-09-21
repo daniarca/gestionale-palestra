@@ -1,7 +1,5 @@
-// File: src/components/Layout.jsx
-
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Drawer, AppBar, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, Typography, Button, Divider, IconButton, Badge, Menu, MenuItem } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -21,6 +19,7 @@ const drawerWidth = 240;
 function Layout({ children, notifications = [] }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Ottieni il percorso attuale
   const auth = getAuth();
   const handleLogout = async () => { await signOut(auth); navigate('/login'); };
   const [anchorEl, setAnchorEl] = useState(null);
@@ -28,6 +27,17 @@ function Layout({ children, notifications = [] }) {
   const handleNotificationsClick = (event) => { setAnchorEl(event.currentTarget); };
   const handleNotificationsClose = () => { setAnchorEl(null); };
   const totalNotifications = notifications.reduce((sum, notif) => sum + notif.count, 0);
+
+  // Array di oggetti per i link del menu
+  const navLinks = [
+    { text: 'Dashboard', path: '/', icon: <DashboardIcon /> },
+    { text: 'Iscritti', path: '/iscritti', icon: <PeopleIcon /> },
+    { text: 'Archivio', path: '/archivio', icon: <ArchivioIcon /> },
+    { text: 'Gruppi', path: '/gruppi', icon: <GroupsIcon /> },
+    { text: 'Staff', path: '/staff', icon: <BadgeIcon /> },
+    { text: 'Orario', path: '/orario', icon: <OrarioIcon /> },
+    { text: 'Report Finanziario', path: '/report', icon: <AssessmentIcon /> },
+  ];
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -45,17 +55,20 @@ function Layout({ children, notifications = [] }) {
         <Toolbar />
         <Box sx={{ overflow: 'auto' }}>
           <List>
-            <ListItemButton component={RouterLink} to="/"><ListItemIcon><DashboardIcon /></ListItemIcon><ListItemText primary="Dashboard" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/iscritti"><ListItemIcon><PeopleIcon /></ListItemIcon><ListItemText primary="Iscritti" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/archivio"><ListItemIcon><ArchivioIcon /></ListItemIcon><ListItemText primary="Archivio" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/gruppi"><ListItemIcon><GroupsIcon /></ListItemIcon><ListItemText primary="Gruppi" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/staff"><ListItemIcon><BadgeIcon /></ListItemIcon><ListItemText primary="Staff" /></ListItemButton>
-            <ListItemButton component={RouterLink} to="/orario"><ListItemIcon><OrarioIcon /></ListItemIcon><ListItemText primary="Orario" /></ListItemButton>
-            <Divider sx={{ my: 1 }} />
-            <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
+            {navLinks.map((link) => (
+              <ListItemButton 
+                key={link.path}
+                component={RouterLink} 
+                to={link.path}
+                selected={location.pathname === link.path} // Evidenzia il link della pagina attuale
+              >
+                <ListItemIcon>{link.icon}</ListItemIcon>
+                <ListItemText primary={link.text} />
+              </ListItemButton>
+            ))}
           </List>
+          <Divider sx={{ my: 1 }} />
         </Box>
-
         <Box sx={{ p: 2, mt: 'auto' }}>
           <Divider sx={{ mb: 2 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
