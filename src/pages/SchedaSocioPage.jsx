@@ -9,15 +9,16 @@ import { Box, Typography, Paper, Tabs, Tab, CircularProgress, Button, Grid, Chip
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import ArchiveIcon from '@mui/icons-material/Archive';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import IscrittoEditDialog from '../components/IscrittoEditDialog.jsx';
 import AggiungiPagamentoDialog from '../components/AggiungiPagamentoDialog.jsx';
 import StoricoPagamenti from '../components/StoricoPagamenti.jsx';
 import PrintIcon from '@mui/icons-material/Print';
-import { numberToWords } from '../utils/numberToWords.js';
 import logoImage from '../assets/logo.png';
 import firmaImage from '../assets/firma.png';
 import { generateReceipt } from '../utils/generateReceipt.js';
+import { uploadFile, fetchDocumentsByIscrittoId, deleteFile } from '../services/firebaseService.js';
+import FileUpload from '../components/FileUpload.jsx';
+import DocumentList from '../components/DocumentList.jsx';
 
 function TabPanel(props) {
   const { children, value, index } = props;
@@ -31,7 +32,9 @@ function SchedaSocioPage({ onDataUpdate }) {
 
   const [iscritto, setIscritto] = useState(null);
   const [pagamenti, setPagamenti] = useState([]);
+  const [documenti, setDocumenti] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
@@ -45,9 +48,14 @@ function SchedaSocioPage({ onDataUpdate }) {
       if (docSnap.exists()) {
         const iscrittoData = { id: docSnap.id, ...docSnap.data() };
         setIscritto(iscrittoData);
-        const q = query(collection(db, "pagamenti"), where("iscrittoId", "==", iscrittoId));
-        const pagamentiSnap = await getDocs(q);
-        setPagamenti(pagamentiSnap.docs.map(doc => doc.data()));
+        
+        const [pagamentiList, documentiList] = await Promise.all([
+          getDocs(query(collection(db, "pagamenti"), where("iscrittoId", "==", iscrittoId))).then(snap => snap.docs.map(d => d.data())),
+          fetchDocumentsByIscrittoId(iscrittoId),
+        ]);
+        setPagamenti(pagamentiList);
+        setDocumenti(documentiList);
+        
       } else {
         showNotification("Iscritto non trovato.", "error");
         navigate('/iscritti');
@@ -62,6 +70,30 @@ function SchedaSocioPage({ onDataUpdate }) {
   useEffect(() => {
     fetchIscritto();
   }, [iscrittoId]);
+  
+  const handleFileUpload = async (file) => {
+    setUploading(true);
+    try {
+      await uploadFile(file, iscrittoId);
+      showNotification("File caricato con successo!", "success");
+      fetchIscritto();
+    } catch (error) {
+      showNotification("Errore durante il caricamento.", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileDelete = async (docId, filePath) => {
+    if (!window.confirm("Sei sicuro di voler eliminare questo documento? L'azione è irreversibile.")) return;
+    try {
+      await deleteFile(docId, filePath);
+      showNotification("Documento eliminato.", "success");
+      fetchIscritto();
+    } catch (error) {
+      showNotification("Errore durante l'eliminazione.", "error");
+    }
+  };
 
   const handleUpdateIscritto = async (updatedData) => {
     try {
@@ -84,18 +116,6 @@ function SchedaSocioPage({ onDataUpdate }) {
       navigate('/iscritti');
     } catch (e) {
       showNotification("Errore durante l'archiviazione.", "error");
-    }
-  };
-
-  const handleEliminaIscritto = async () => {
-    if (!window.confirm("ATTENZIONE: Stai per eliminare definitivamente questo iscritto e tutti i suoi dati. L'azione è irreversibile. Continuare?")) return;
-    try {
-      await deleteDoc(doc(db, "iscritti", iscrittoId));
-      showNotification("Iscritto eliminato definitivamente.", "warning");
-      if (onDataUpdate) onDataUpdate();
-      navigate('/iscritti');
-    } catch (e) {
-      showNotification("Errore durante l'eliminazione.", "error");
     }
   };
 
@@ -152,10 +172,10 @@ function SchedaSocioPage({ onDataUpdate }) {
       showNotification("Errore durante la registrazione del pagamento.", 'error'); 
     }
   };
-const handleStampaRicevuta = () => {
-  // Chiama la funzione importata e le passa i dati e le immagini necessarie
-  generateReceipt(iscritto, pagamenti, logoImage, firmaImage);
-};
+
+  const handleStampaRicevuta = () => {
+    generateReceipt(iscritto, pagamenti, logoImage, firmaImage);
+  };
   
   const handleTabChange = (event, newValue) => { setTabValue(newValue); };
   const formatDate = (dateString) => { if (!dateString) return 'N/D'; return new Date(dateString).toLocaleDateString('it-IT'); };
@@ -186,6 +206,7 @@ const handleStampaRicevuta = () => {
             <Tab label="Contatti" />
             <Tab label="Dati Sanitari" />
             <Tab label="Pagamenti" />
+            <Tab label="Documenti" />
           </Tabs>
         </Box>
 
@@ -221,6 +242,13 @@ const handleStampaRicevuta = () => {
         <TabPanel value={tabValue} index={3}>
           <Button onClick={() => setPagamentoDialogOpen(true)} variant="contained" color="success" sx={{ mb: 2 }}>Aggiungi Pagamento</Button>
           <StoricoPagamenti pagamenti={pagamenti} quotaMensile={iscritto.quotaMensile} quotaIscrizione={iscritto.quotaIscrizione} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={4}>
+          <Typography variant="h6" gutterBottom>Gestione Documentale</Typography>
+          <FileUpload onUpload={handleFileUpload} isLoading={uploading} />
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="h6" gutterBottom>Documenti Caricati</Typography>
+          <DocumentList documents={documenti} onDelete={handleFileDelete} />
         </TabPanel>
       </Paper>
 

@@ -1,7 +1,10 @@
-// File: src/services/firebaseService.js (Nuovo File)
+// File: src/services/firebaseService.js
 
-import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc, orderBy } from "firebase/firestore"; 
+import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore"; 
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { db } from '../firebase.js';
+
+const storage = getStorage();
 
 // --- SERVIZI PER ISCRITTI ---
 
@@ -73,6 +76,11 @@ export const addGruppo = async (nuovoGruppo) => {
   await addDoc(collection(db, "gruppi"), nuovoGruppo);
 };
 
+export const updateGruppo = async (updatedGruppo) => {
+    const gruppoRef = doc(db, "gruppi", updatedGruppo.id);
+    await updateDoc(gruppoRef, updatedGruppo);
+};
+
 export const updateGruppoMembri = async (gruppoId, nuoviMembriIds) => {
   const gruppoRef = doc(db, "gruppi", gruppoId);
   await updateDoc(gruppoRef, { membri: nuoviMembriIds });
@@ -97,4 +105,38 @@ export const addStaff = async (nuovoMembro) => {
 
 export const deleteStaff = async (id) => {
   await deleteDoc(doc(db, "staff", id));
+};
+
+
+// --- SERVIZI PER DOCUMENTI ---
+
+export const uploadFile = async (file, iscrittoId) => {
+  const filePath = `documenti/${iscrittoId}/${Date.now()}_${file.name}`;
+  const fileRef = ref(storage, filePath);
+  
+  await uploadBytes(fileRef, file);
+  const url = await getDownloadURL(fileRef);
+
+  const docData = {
+    iscrittoId,
+    name: file.name,
+    url,
+    filePath,
+    createdAt: Timestamp.now(),
+  };
+
+  const docRef = await addDoc(collection(db, "documenti"), docData);
+  return { id: docRef.id, ...docData };
+};
+
+export const fetchDocumentsByIscrittoId = async (iscrittoId) => {
+  const q = query(collection(db, "documenti"), where("iscrittoId", "==", iscrittoId), orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const deleteFile = async (docId, filePath) => {
+  const fileRef = ref(storage, filePath);
+  await deleteObject(fileRef);
+  await deleteDoc(doc(db, "documenti", docId));
 };

@@ -1,3 +1,5 @@
+// File: src/components/Layout.jsx
+
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Box, Drawer, AppBar, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, Typography, Button, Divider, IconButton, Badge, Menu, MenuItem } from '@mui/material';
@@ -12,7 +14,7 @@ import OrarioIcon from '@mui/icons-material/CalendarMonth';
 import ArchivioIcon from '@mui/icons-material/Archive';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
-// L'importazione di ThemeSelector è stata rimossa
+import packageJson from '../../package.json';
 
 const drawerWidth = 240;
 
@@ -39,7 +41,7 @@ function Layout({ children, notifications = [] }) {
           </Box>
         </Toolbar>
       </AppBar>
-      <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink: 0, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' } }}>
+      <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink: 0, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' } }}>
         <Toolbar />
         <Box sx={{ overflow: 'auto' }}>
           <List>
@@ -52,7 +54,19 @@ function Layout({ children, notifications = [] }) {
             <Divider sx={{ my: 1 }} />
             <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
-          {/* Il blocco di codice per ThemeSelector è stato rimosso */}
+        </Box>
+
+        <Box sx={{ p: 2, mt: 'auto' }}>
+          <Divider sx={{ mb: 2 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            asdgympointOS 🌩️
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Versione {packageJson.version}
+          </Typography>
+          <Typography variant="caption" display="block">
+            Sviluppato da Daniele Arcangeli
+          </Typography>
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
