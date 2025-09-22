@@ -1,6 +1,15 @@
 import { useState, useMemo } from "react";
-import { Box, Typography, Button, Paper, Chip } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Chip,
+  TextField,
+  InputAdornment,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import IscrittoForm from "../components/IscrittoForm.jsx";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
@@ -9,6 +18,7 @@ import moment from "moment";
 function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("tutti");
+  const [searchTerm, setSearchTerm] = useState("");
   const showNotification = useNotification();
 
   const handleToggleForm = () => {
@@ -22,14 +32,25 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
 
   const today = moment();
   const filteredIscritti = useMemo(() => {
+    let filtered = iscrittiList;
+
+    if (searchTerm) {
+      const lowercasedSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (i) =>
+          i.nome.toLowerCase().includes(lowercasedSearchTerm) ||
+          i.cognome.toLowerCase().includes(lowercasedSearchTerm)
+      );
+    }
+
     switch (activeFilter) {
       case "abbonamenti_scaduti":
-        return iscrittiList.filter((i) => {
+        return filtered.filter((i) => {
           if (!i.abbonamento?.scadenza) return false;
           return moment(i.abbonamento.scadenza).isBefore(today, "day");
         });
       case "abbonamenti_in_scadenza":
-        return iscrittiList.filter((i) => {
+        return filtered.filter((i) => {
           if (!i.abbonamento?.scadenza) return false;
           const scadenza = moment(i.abbonamento.scadenza);
           return (
@@ -38,16 +59,14 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           );
         });
       case "certificati_scaduti":
-        return iscrittiList.filter((i) => {
+        return filtered.filter((i) => {
           if (!i.certificatoMedico?.scadenza) return false;
           return moment(i.certificatoMedico.scadenza).isBefore(today, "day");
         });
       case "certificati_mancanti":
-        return iscrittiList.filter(
-          (i) => i.certificatoMedico?.presente === false
-        );
+        return filtered.filter((i) => i.certificatoMedico?.presente === false);
       case "certificati_in_scadenza":
-        return iscrittiList.filter((i) => {
+        return filtered.filter((i) => {
           if (!i.certificatoMedico?.scadenza) return false;
           const scadenza = moment(i.certificatoMedico.scadenza);
           return (
@@ -56,9 +75,9 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           );
         });
       default:
-        return iscrittiList;
+        return filtered;
     }
-  }, [iscrittiList, activeFilter, today]);
+  }, [iscrittiList, activeFilter, searchTerm, today]);
 
   return (
     <Box>
@@ -90,6 +109,24 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
       )}
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Ricerca Socio
+          </Typography>
+          <TextField
+            fullWidth
+            placeholder="Cerca per nome o cognome"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6" gutterBottom>
             Filtri Rapidi
