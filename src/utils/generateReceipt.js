@@ -1,5 +1,3 @@
-// File: src/utils/generateReceipt.js
-
 import { numberToWords } from './numberToWords.js';
 
 function formatDate(dateString) {

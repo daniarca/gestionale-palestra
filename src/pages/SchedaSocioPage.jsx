@@ -13,6 +13,7 @@ import IscrittoEditDialog from '../components/IscrittoEditDialog.jsx';
 import AggiungiPagamentoDialog from '../components/AggiungiPagamentoDialog.jsx';
 import StoricoPagamenti from '../components/StoricoPagamenti.jsx';
 import PrintIcon from '@mui/icons-material/Print';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import logoImage from '../assets/logo.png';
 import firmaImage from '../assets/firma.png';
 import { generateReceipt } from '../utils/generateReceipt.js';
@@ -119,6 +120,7 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
+  // FUNZIONE PER AGGIUNTA PAGAMENTO
   const handleAggiungiPagamento = async (paymentData) => {
     if (!iscritto) return;
     const { cifra, tipo, mese } = paymentData;
@@ -173,6 +175,20 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
+  // NUOVA FUNZIONE PER L'ELIMINAZIONE DEFINITIVA
+  const handleEliminaIscritto = async () => {
+    if (!window.confirm("ATTENZIONE: Stai per eliminare definitivamente questo iscritto e tutti i suoi dati. L'azione è irreversibile. Continuare?")) return;
+    try {
+      await deleteDoc(doc(db, "iscritti", iscrittoId));
+      showNotification("Iscritto eliminato definitivamente.", "warning");
+      if (onDataUpdate) onDataUpdate();
+      navigate('/iscritti');
+    } catch (e) {
+      showNotification("Errore durante l'eliminazione.", "error");
+    }
+  };
+
+
   const handleStampaRicevuta = () => {
     generateReceipt(iscritto, pagamenti, logoImage, firmaImage);
   };
@@ -198,6 +214,8 @@ function SchedaSocioPage({ onDataUpdate }) {
             <Button variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handleStampaRicevuta}>Stampa Ricevuta</Button>
             <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditDialogOpen(true)}>Modifica Dati</Button>
             <Button variant="outlined" color="warning" startIcon={<ArchiveIcon />} onClick={handleArchiviaIscritto}>Archivia</Button>
+            {/* NUOVO PULSANTE "ELIMINA" CON LA SUA FUNZIONE */}
+            <Button variant="outlined" color="error" startIcon={<DeleteForeverIcon />} onClick={handleEliminaIscritto}>Elimina</Button>
           </Stack>
         </Box>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>

@@ -2,7 +2,7 @@
 
 const units = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove'];
 const teens = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici', 'diciassette', 'diciotto', 'diciannove'];
-const tens = ['', 'dieci', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
+const tens = ['', '', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
 const thousands = ['', 'mille', 'milioni', 'miliardi'];
 
 function convertLessThanOneThousand(num) {
@@ -14,7 +14,7 @@ function convertLessThanOneThousand(num) {
     const unit = num % 10;
     let word = tens[ten];
     if (unit > 0) {
-      if (unit === 1 || unit === 8) {
+      if ((unit === 1 || unit === 8) && ten !== 1) {
         word = word.slice(0, -1);
       }
       word += units[unit];
@@ -23,7 +23,7 @@ function convertLessThanOneThousand(num) {
   }
   const hundred = Math.floor(num / 100);
   const rest = num % 100;
-  let word = units[hundred] + 'cento';
+  let word = (hundred === 1) ? 'cento' : units[hundred] + 'cento';
   if (rest > 0) {
     word += convertLessThanOneThousand(rest);
   }
@@ -43,7 +43,7 @@ export function numberToWords(num) {
       const chunk = convertLessThanOneThousand(n);
       const thousandUnit = thousands[i];
       
-      if (i === 1 && n === 1) { // L'eccezione per "mille"
+      if (i === 1 && n === 1) {
         word = 'mille ' + word;
       } else if (i > 0) {
         word = chunk + thousandUnit + ' ' + word;
