@@ -1,5 +1,7 @@
+// File: src/components/Layout.jsx
+
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Box, Drawer, AppBar, Toolbar, List, ListItemButton, ListItemIcon, ListItemText, Typography, Button, Divider, IconButton, Badge, Menu, MenuItem } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -10,6 +12,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import BadgeIcon from '@mui/icons-material/Badge';
 import OrarioIcon from '@mui/icons-material/CalendarMonth';
 import ArchivioIcon from '@mui/icons-material/Archive';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // <-- NUOVA ICONA
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import packageJson from '../../package.json';
@@ -19,7 +22,6 @@ const drawerWidth = 240;
 function Layout({ children, notifications = [] }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // Ottieni il percorso attuale
   const auth = getAuth();
   const handleLogout = async () => { await signOut(auth); navigate('/login'); };
   const [anchorEl, setAnchorEl] = useState(null);
@@ -28,17 +30,6 @@ function Layout({ children, notifications = [] }) {
   const handleNotificationsClose = () => { setAnchorEl(null); };
   const totalNotifications = notifications.reduce((sum, notif) => sum + notif.count, 0);
 
-  // Array di oggetti per i link del menu
-  const navLinks = [
-    { text: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-    { text: 'Iscritti', path: '/iscritti', icon: <PeopleIcon /> },
-    { text: 'Archivio', path: '/archivio', icon: <ArchivioIcon /> },
-    { text: 'Gruppi', path: '/gruppi', icon: <GroupsIcon /> },
-    { text: 'Staff', path: '/staff', icon: <BadgeIcon /> },
-    { text: 'Orario', path: '/orario', icon: <OrarioIcon /> },
-    { text: 'Report Finanziario', path: '/report', icon: <AssessmentIcon /> },
-  ];
-
   return (
     <Box sx={{ display: 'flex' }}>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
@@ -46,7 +37,17 @@ function Layout({ children, notifications = [] }) {
           <Typography variant="h6" noWrap component="div">ASD GYM POINT</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>{currentUser?.email}</Typography>
-            <IconButton color="inherit" onClick={handleNotificationsClick}><Badge badgeContent={totalNotifications} color="error"><NotificationsIcon /></Badge></IconButton>
+            
+            <IconButton color="inherit" onClick={handleNotificationsClick}>
+              <Badge badgeContent={totalNotifications} color="error"><NotificationsIcon /></Badge>
+            </IconButton>
+            
+            {/* --- INIZIA MODIFICA --- */}
+            <IconButton color="inherit" component={RouterLink} to="/documentazione" title="Guida">
+              <HelpOutlineIcon />
+            </IconButton>
+            {/* --- FINISCI MODIFICA --- */}
+
             <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
           </Box>
         </Toolbar>
@@ -55,31 +56,22 @@ function Layout({ children, notifications = [] }) {
         <Toolbar />
         <Box sx={{ overflow: 'auto' }}>
           <List>
-            {navLinks.map((link) => (
-              <ListItemButton 
-                key={link.path}
-                component={RouterLink} 
-                to={link.path}
-                selected={location.pathname === link.path} // Evidenzia il link della pagina attuale
-              >
-                <ListItemIcon>{link.icon}</ListItemIcon>
-                <ListItemText primary={link.text} />
-              </ListItemButton>
-            ))}
+            <ListItemButton component={RouterLink} to="/"><ListItemIcon><DashboardIcon /></ListItemIcon><ListItemText primary="Dashboard" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/iscritti"><ListItemIcon><PeopleIcon /></ListItemIcon><ListItemText primary="Iscritti" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/archivio"><ListItemIcon><ArchivioIcon /></ListItemIcon><ListItemText primary="Archivio" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/gruppi"><ListItemIcon><GroupsIcon /></ListItemIcon><ListItemText primary="Gruppi" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/staff"><ListItemIcon><BadgeIcon /></ListItemIcon><ListItemText primary="Staff" /></ListItemButton>
+            <ListItemButton component={RouterLink} to="/orario"><ListItemIcon><OrarioIcon /></ListItemIcon><ListItemText primary="Orario" /></ListItemButton>
+            <Divider sx={{ my: 1 }} />
+            <ListItemButton component={RouterLink} to="/report"><ListItemIcon><AssessmentIcon /></ListItemIcon><ListItemText primary="Report Finanziario" /></ListItemButton>
           </List>
-          <Divider sx={{ my: 1 }} />
         </Box>
+
         <Box sx={{ p: 2, mt: 'auto' }}>
           <Divider sx={{ mb: 2 }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-            asdgympointOS 🌩️
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Versione {packageJson.version}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Sviluppato da Daniele Arcangeli
-          </Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>asdgympointOS 🌩️</Typography>
+          <Typography variant="caption" color="text.secondary">Versione 2025.{packageJson.version}</Typography>
+          <Typography variant="caption" display="block">Sviluppato da Daniele Arcangeli</Typography>
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>

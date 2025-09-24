@@ -14,6 +14,7 @@ import OrarioPage from './pages/OrarioPage.jsx';
 import ArchivioPage from './pages/ArchivioPage.jsx';
 import SchedaSocioPage from './pages/SchedaSocioPage.jsx';
 import Notifier from './components/Notifier.jsx';
+import DocumentazionePage from './pages/DocumentazionePage.jsx';
 import './App.css';
 
 function MainApp() {
@@ -97,6 +98,7 @@ function MainApp() {
         <Route path="/staff" element={<StaffPage staffList={staff} />} />
         <Route path="/report" element={<ReportPage pagamentiList={pagamenti} />} />
         <Route path="/orario" element={<OrarioPage gruppiList={gruppi} />} />
+        <Route path="/documentazione" element={<DocumentazionePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>
