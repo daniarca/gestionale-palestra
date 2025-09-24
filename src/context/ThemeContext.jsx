@@ -8,7 +8,7 @@ const ThemeContext = createContext();
 
 export const ThemeProviderWrapper = ({ children }) => {
   // Il tema predefinito è impostato su 'default', che è presente nel tuo theme.js
-  const [currentTheme, setCurrentTheme] = useState('nordic'); 
+  const [currentTheme, setCurrentTheme] = useState('smarthome'); 
 
   const toggleTheme = (themeName) => {
     setCurrentTheme(themeName);
