@@ -3,6 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 
+// Nuove costanti per Livelli e Categorie
+const LIVELLI = ['Base', 'Intermedio', 'Avanzato', 'Agonismo'];
+const CATEGORIE = ['Microbaby', 'Allieva', 'Junior', 'Senior'];
+
 function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
   const [formData, setFormData] = useState({});
 
@@ -14,6 +18,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         haCertificato: iscritto.certificatoMedico?.presente || false,
         scadenzaCertificato: iscritto.certificatoMedico?.scadenza || '',
         scadenzaAbbonamento: iscritto.abbonamento?.scadenza || '',
+        // Nuovi campi
+        livello: iscritto.livello || '',
+        categoria: iscritto.categoria || '',
       });
     }
   }, [iscritto, open]);
@@ -25,11 +32,13 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
 
   const handleSave = () => {
     // Riorganizza i dati nella struttura corretta per Firebase prima di salvare
-    const { haCertificato, scadenzaCertificato, scadenzaAbbonamento, ...rest } = formData;
+    const { haCertificato, scadenzaCertificato, scadenzaAbbonamento, livello, categoria, ...rest } = formData;
     const dataToSave = {
       ...rest,
       certificatoMedico: { presente: haCertificato, scadenza: scadenzaCertificato },
       abbonamento: { scadenza: scadenzaAbbonamento },
+      livello, // Salva il nuovo campo
+      categoria, // Salva il nuovo campo
     };
     onSave(dataToSave);
   };
@@ -43,6 +52,27 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         <Grid container spacing={2} sx={{ pt: 1 }}>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="nome" label="Nome" value={formData.nome || ''} onChange={handleChange}/></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="cognome" label="Cognome" value={formData.cognome || ''} onChange={handleChange}/></Grid>
+          
+          {/* NUOVI CAMPI LIVELLO E CATEGORIA */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth margin="dense">
+                <InputLabel>Livello</InputLabel>
+                <Select name="livello" label="Livello" value={formData.livello || ''} onChange={handleChange}>
+                    <MenuItem value=""><em>N/D</em></MenuItem>
+                    {LIVELLI.map(lvl => <MenuItem key={lvl} value={lvl}>{lvl}</MenuItem>)}
+                </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth margin="dense">
+                <InputLabel>Categoria</InputLabel>
+                <Select name="categoria" label="Categoria" value={formData.categoria || ''} onChange={handleChange}>
+                    <MenuItem value=""><em>N/D</em></MenuItem>
+                    {CATEGORIE.map(cat => <MenuItem key={cat} value={cat}>{cat}</MenuItem>)}
+                </Select>
+            </FormControl>
+          </Grid>
+          
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="quotaIscrizione" label="Quota Iscrizione (€)" type="number" value={formData.quotaIscrizione || ''} onChange={handleChange}/></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth margin="dense" name="quotaMensile" label="Quota Mensile Prevista (€)" type="number" value={formData.quotaMensile || ''} onChange={handleChange}/></Grid>
           <Grid item xs={12} sm={8}><TextField fullWidth margin="dense" name="luogoNascita" label="Luogo di Nascita" value={formData.luogoNascita || ''} onChange={handleChange}/></Grid>

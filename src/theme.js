@@ -2,7 +2,7 @@
 
 import { createTheme } from '@mui/material/styles';
 
-// --- Funzione per Applicare Regole di Contrasto Comuni (RIUTILIZZATE) ---
+// --- Funzione per Applicare Regole di Contrasto Comuni ---
 const getBaseComponents = (mode) => ({
     MuiButton: {
         styleOverrides: { 
@@ -12,12 +12,10 @@ const getBaseComponents = (mode) => ({
                 '& a': { color: 'inherit' },
                 '& a:hover': { color: 'inherit' }
             },
-            // FIX CRITICO: Il testo sui pulsanti Primary (che è Viola scuro) DEVE essere BIANCO in light mode.
-            containedPrimary: { color: mode === 'light' ? '#ECEFF4' : '#ECEFF4' }, 
-            
-            containedError: { color: mode === 'light' ? '#FFFFFF' : '#ECEFF4' }, 
-            containedWarning: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
-            containedSuccess: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
+            containedPrimary: { color: mode === 'light' ? '#ECEFF4' : '#ECEFF4' },
+            containedError: { color: mode === 'light' ? '#FFFFFF' : '#ECEFF4' },
+            containedWarning: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' },
+            containedSuccess: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' },
             outlined: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
             text: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' },
         },
@@ -65,19 +63,27 @@ const getBaseComponents = (mode) => ({
             root: {
                 textTransform: 'none',
                 fontWeight: 'bold',
-                '&.Mui-focusVisible': {
-                    outline: 'none !important',
-                },
+                '&.Mui-focusVisible': { outline: 'none !important' },
                 '&.Mui-selected': {
                     backgroundColor: 'transparent',
                     color: mode === 'light' ? '#6A5ACD' : '#E2BD86',
                     border: 'none !important' 
                 },
-                '&:hover': {
-                    backgroundColor: 'rgba(106, 90, 205, 0.03)',
-                },
+                '&:hover': { backgroundColor: 'rgba(106, 90, 205, 0.03)' },
             },
         },
+    },
+    // FIX INPUT ARROTONDATO/QUADRATO
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8, // Arrotondamento uniforme per l'input
+          // Rimuove il bordo interno che crea l'effetto doppio-cornice
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderRadius: 8,
+          },
+        },
+      },
     },
     MuiSvgIcon: { 
         styleOverrides: { 
@@ -136,7 +142,7 @@ export const themes = {
       h6: { fontWeight: 600, fontSize: '1.25rem' },
     },
     shape: {
-      borderRadius: 12,
+      borderRadius: 8, // Riduco l'arrotondamento base per coerenza
     },
     components: getBaseComponents('dark'),
   }),
@@ -165,7 +171,7 @@ export const themes = {
       h6: { fontWeight: 600, fontSize: '1.25rem' },
     },
     shape: {
-      borderRadius: 16,
+      borderRadius: 8, // Riduci l'arrotondamento qui (da 16 a 8) per un effetto più soft
     },
     components: getBaseComponents('light'),
   }),

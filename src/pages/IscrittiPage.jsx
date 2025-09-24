@@ -1,3 +1,5 @@
+// File: src/pages/IscrittiPage.jsx
+
 import { useState, useMemo } from "react";
 import {
   Box,
@@ -13,12 +15,16 @@ import SearchIcon from "@mui/icons-material/Search";
 import IscrittoForm from "../components/IscrittoForm.jsx";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
+import { exportToExcel } from "../utils/exportToExcel.js";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import moment from "moment";
 
 function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  
   const showNotification = useNotification();
 
   const handleToggleForm = () => {
@@ -30,10 +36,30 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
     onIscrittoAdded();
   };
 
+  const handleSelectIscritto = (id) => {
+    setSelectedIds((prevSelected) =>
+      prevSelected.includes(id)
+        ? prevSelected.filter((i) => i !== id)
+        : [...prevSelected, id]
+    );
+  };
+
+  const handleExportSelected = () => {
+      if (selectedIds.length === 0) {
+          showNotification("Seleziona almeno un socio da esportare.", "warning");
+          return;
+      }
+      const selectedIscritti = iscrittiList.filter(i => selectedIds.includes(i.id));
+      exportToExcel(selectedIscritti, "Lista_Atleti_Gara");
+      showNotification(`Esportati ${selectedIds.length} soci in Lista_Atleti_Gara.xlsx`, "success");
+      setSelectedIds([]); 
+  };
+
+
   const today = moment();
   const filteredIscritti = useMemo(() => {
     let filtered = iscrittiList;
-
+    // ... (Logica di filtraggio omessa per brevità)
     if (searchTerm) {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -42,7 +68,6 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           i.cognome.toLowerCase().includes(lowercasedSearchTerm)
       );
     }
-
     switch (activeFilter) {
       case "abbonamenti_scaduti":
         return filtered.filter((i) => {
@@ -79,6 +104,10 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
     }
   }, [iscrittiList, activeFilter, searchTerm, today]);
 
+  // STILE PER GESTIRE LA VISIBILITÀ SENZA REFLOW
+  const exportBarHeight = selectedIds.length > 0 ? 60 : 0;
+  const exportBarVisibility = selectedIds.length > 0 ? 'visible' : 'hidden';
+
   return (
     <Box>
       <Box
@@ -97,6 +126,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           color="primary"
           onClick={handleToggleForm}
           startIcon={<AddIcon />}
+          sx={{ color: 'white' }} 
         >
           {isFormOpen ? "Chiudi Form" : "Aggiungi Iscritto"}
         </Button>
@@ -107,6 +137,37 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           <IscrittoForm onIscrittoAdded={handleIscrittoAdded} />
         </Paper>
       )}
+
+      {/* FIX REFLOW: Il Paper rimane sempre in posizione, ma si comprime a 0px di altezza quando vuoto */}
+      <Box sx={{ 
+            height: exportBarHeight, 
+            opacity: selectedIds.length > 0 ? 1 : 0, 
+            visibility: exportBarVisibility,
+            transition: 'height 0.3s, opacity 0.3s',
+            mb: 3
+          }}>
+        <Paper sx={{ 
+            p: 2, 
+            borderRadius: 4, 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            height: '100%',
+          }}>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {selectedIds.length} Soci Selezionati
+            </Typography>
+            <Button 
+                variant="contained" 
+                color="success" 
+                onClick={handleExportSelected}
+                startIcon={<FileDownloadIcon />}
+            >
+                Esporta Lista Gara (.xlsx)
+            </Button>
+        </Paper>
+      </Box>
+
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
         <Box sx={{ mb: 3 }}>
@@ -141,66 +202,40 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
             <Chip
               label="Abbonamenti Scaduti"
               onClick={() => setActiveFilter("abbonamenti_scaduti")}
-              color={
-                activeFilter === "abbonamenti_scaduti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"
-              }
+              color={activeFilter === "abbonamenti_scaduti" ? "error" : "default"}
+              variant={activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"}
             />
             <Chip
               label="Abbonamenti in scadenza"
               onClick={() => setActiveFilter("abbonamenti_in_scadenza")}
-              color={
-                activeFilter === "abbonamenti_in_scadenza"
-                  ? "warning"
-                  : "default"
-              }
-              variant={
-                activeFilter === "abbonamenti_in_scadenza"
-                  ? "filled"
-                  : "outlined"
-              }
+              color={activeFilter === "abbonamenti_in_scadenza" ? "warning" : "default"}
+              variant={activeFilter === "abbonamenti_in_scadenza" ? "filled" : "outlined"}
             />
             <Chip
               label="Certificati Scaduti"
               onClick={() => setActiveFilter("certificati_scaduti")}
-              color={
-                activeFilter === "certificati_scaduti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "certificati_scaduti" ? "filled" : "outlined"
-              }
+              color={activeFilter === "certificati_scaduti" ? "error" : "default"}
+              variant={activeFilter === "certificati_scaduti" ? "filled" : "outlined"}
             />
             <Chip
               label="Certificati Mancanti"
               onClick={() => setActiveFilter("certificati_mancanti")}
-              color={
-                activeFilter === "certificati_mancanti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "certificati_mancanti" ? "filled" : "outlined"
-              }
+              color={activeFilter === "certificati_mancanti" ? "error" : "default"}
+              variant={activeFilter === "certificati_mancanti" ? "filled" : "outlined"}
             />
             <Chip
               label="Certificati in scadenza"
               onClick={() => setActiveFilter("certificati_in_scadenza")}
-              color={
-                activeFilter === "certificati_in_scadenza"
-                  ? "warning"
-                  : "default"
-              }
-              variant={
-                activeFilter === "certificati_in_scadenza"
-                  ? "filled"
-                  : "outlined"
-              }
+              color={activeFilter === "certificati_in_scadenza" ? "warning" : "default"}
+              variant={activeFilter === "certificati_in_scadenza" ? "filled" : "outlined"}
             />
           </Box>
         </Box>
         <IscrittiLista
           iscritti={filteredIscritti}
           onDataUpdate={onDataUpdate}
+          onSelect={handleSelectIscritto}
+          selection={selectedIds}
           activeFilter={activeFilter}
         />
       </Paper>
