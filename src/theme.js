@@ -3,19 +3,18 @@
 import { createTheme } from '@mui/material/styles';
 
 // --- Funzione per Applicare Regole di Contrasto Comuni (RIUTILIZZATE) ---
-// Questa funzione include i FIX per il contrasto e la risoluzione del problema 'viola' sui link
 const getBaseComponents = (mode) => ({
     MuiButton: {
         styleOverrides: { 
             root: { 
                 textTransform: 'none', 
                 fontWeight: 'bold', 
-                // FIX CRITICO: Eredita il colore dal pulsante sia in stato normale che in hover
                 '& a': { color: 'inherit' },
                 '& a:hover': { color: 'inherit' }
             },
-            // Controlla il colore del testo sui pulsanti a seconda del contrasto
-            containedPrimary: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
+            // FIX CRITICO: Il testo sui pulsanti Primary (che è Viola scuro) DEVE essere BIANCO in light mode.
+            containedPrimary: { color: mode === 'light' ? '#ECEFF4' : '#ECEFF4' }, 
+            
             containedError: { color: mode === 'light' ? '#FFFFFF' : '#ECEFF4' }, 
             containedWarning: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
             containedSuccess: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
@@ -56,10 +55,28 @@ const getBaseComponents = (mode) => ({
                 '& a': { color: 'inherit' },
                 '& a:hover': { color: 'inherit' }
             },
-            // Forziamo il contrasto: testo scuro su sfondi chiari, testo chiaro su sfondi scuri
             filledError: { color: mode === 'light' ? '#FFFFFF' : '#ECEFF4' }, 
-            filledWarning: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
-            filledSuccess: { color: mode === 'light' ? '#1E1E2E' : '#ECEFF4' }, 
+            filledWarning: { color: 'light' ? '#1E1E2E' : '#ECEFF4' }, 
+            filledSuccess: { color: 'light' ? '#1E1E2E' : '#ECEFF4' }, 
+        },
+    },
+    MuiTab: {
+        styleOverrides: {
+            root: {
+                textTransform: 'none',
+                fontWeight: 'bold',
+                '&.Mui-focusVisible': {
+                    outline: 'none !important',
+                },
+                '&.Mui-selected': {
+                    backgroundColor: 'transparent',
+                    color: mode === 'light' ? '#6A5ACD' : '#E2BD86',
+                    border: 'none !important' 
+                },
+                '&:hover': {
+                    backgroundColor: 'rgba(106, 90, 205, 0.03)',
+                },
+            },
         },
     },
     MuiSvgIcon: { 
@@ -99,15 +116,15 @@ export const themes = {
   asdgym: createTheme({
     palette: {
       mode: 'dark',
-      primary: { main: '#E2BD86' },     // Oro/Beige (per risalto)
-      secondary: { main: '#4A4D7A' },   // Blu scuro (per coerenza)
-      success: { main: '#6AA84F' },     // Verde scuro leggibile
-      warning: { main: '#F1C232' },     // Giallo scuro leggibile
-      error: { main: '#CC0000' },       // Rosso scuro leggibile
+      primary: { main: '#E2BD86' },
+      secondary: { main: '#4A4D7A' },
+      success: { main: '#6AA84F' },
+      warning: { main: '#F1C232' },
+      error: { main: '#CC0000' },
       info: { main: '#4A86E8' },
       background: { 
-        default: '#1E1E2E', // Grigio scuro soft (nuovo sfondo)
-        paper: '#282C34'   // Grigio scuro leggermente diverso per le card
+        default: '#1E1E2E',
+        paper: '#282C34'   
       },
       text: { primary: '#ECEFF4', secondary: '#8F8F8F' }, 
       divider: '#4A4D7A',
@@ -128,17 +145,17 @@ export const themes = {
   smarthome: createTheme({
     palette: {
       mode: 'light',
-      primary: { main: '#6A5ACD' },     
-      secondary: { main: '#A07EDD' },  
-      success: { main: '#7BD94F' },     // Verde brillante
-      warning: { main: '#FFC84E' },     // Giallo/Arancio
-      error: { main: '#FF6B6B' },       // Rosa/Rosso errore
-      info: { main: '#7BD3EF' },        // Azzurro info
+      primary: { main: '#6A5ACD' }, // Viola scuro
+      secondary: { main: '#A07EDD' },  // Viola chiaro/Lavanda
+      success: { main: '#7BD94F' },
+      warning: { main: '#FFC84E' },
+      error: { main: '#FF6B6B' },
+      info: { main: '#7BD3EF' },
       background: { 
-        default: '#F7F8FC', // Sfondo leggermente off-white
-        paper: '#FFFFFF'   // Bianco puro per le card
+        default: '#F7F8FC',
+        paper: '#FFFFFF'
       },
-      text: { primary: '#1E1E2E', secondary: '#7C7895' }, // Testo scuro/grigio-viola
+      text: { primary: '#1E1E2E', secondary: '#7C7895' },
       divider: 'rgba(122, 120, 149, 0.2)', 
     },
     typography: {
@@ -148,27 +165,26 @@ export const themes = {
       h6: { fontWeight: 600, fontSize: '1.25rem' },
     },
     shape: {
-      borderRadius: 16, // Bordo arrotondato come l'app mobile
+      borderRadius: 16,
     },
     components: getBaseComponents('light'),
   }),
 
-  // Tema 4: pastel (NUOVO TEMA: Ispirato a Pastel Dreams)
+  // Tema 4: pastel (Ispirato a Pastel Dreams)
   pastel: createTheme({
     palette: {
       mode: 'light',
-      // Colori della palette Pastel Dreams
-      primary: { main: '#FF99C8' },     // Rosa
-      secondary: { main: '#A9DEF9' },  // Azzurro
-      success: { main: '#D0F4DE' },     // Menta
-      warning: { main: '#E4C1F9' },     // Lavanda
-      error: { main: '#EF5350' },       // Rosso tenue
-      info: { main: '#FCF6BD' },        // Giallo (Usato come info/sfondo card non-Paper)
+      primary: { main: '#FF99C8' },
+      secondary: { main: '#A9DEF9' },
+      success: { main: '#D0F4DE' },
+      warning: { main: '#E4C1F9' },
+      error: { main: '#EF5350' },
+      info: { main: '#FCF6BD' },
       background: { 
-        default: '#FCF6BD', // Giallo tenue (sfondo principale)
-        paper: '#FFFFFF'   // Bianco puro per le card
+        default: '#FCF6BD',
+        paper: '#FFFFFF'
       },
-      text: { primary: '#1E1E2E', secondary: '#5D576B' }, // Testo scuro
+      text: { primary: '#1E1E2E', secondary: '#5D576B' },
       divider: 'rgba(30, 30, 46, 0.1)', 
     },
     typography: {

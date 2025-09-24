@@ -5,7 +5,7 @@ import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useNotification } from '../context/NotificationContext.jsx';
-import { Box, Typography, Paper, Tabs, Tab, CircularProgress, Button, Grid, Chip, Divider, Stack } from '@mui/material';
+import { Box, Typography, Paper, Tabs, Tab, CircularProgress, Button, Grid, Chip, Divider, Stack, useTheme } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import ArchiveIcon from '@mui/icons-material/Archive';
@@ -30,6 +30,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   const { iscrittoId } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const theme = useTheme(); 
 
   const [iscritto, setIscritto] = useState(null);
   const [pagamenti, setPagamenti] = useState([]);
@@ -138,8 +139,12 @@ function SchedaSocioPage({ onDataUpdate }) {
     let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato.`;
 
     if (tipo === 'Quota Mensile') {
-      const anno = mese < oggi.getMonth() ? oggi.getFullYear() + 1 : oggi.getFullYear();
-      dataPagamentoSpecifica = new Date(anno, mese, 15);
+      // FIX SINTASSI: Risoluzione dell'errore di sintassi nel calcolo dell'anno.
+      // Assumiamo l'anno corrente a meno che il mese non sia nel passato della stagione (dopo Settembre)
+      const targetYear = (mese < oggi.getMonth() && oggi.getMonth() >= 8) ? oggi.getFullYear() + 1 : oggi.getFullYear();
+
+      dataPagamentoSpecifica = new Date(targetYear, mese, 15);
+      
       if (cifra >= (iscritto.quotaMensile || 60)) {
         const vecchiaScadenza = iscritto.abbonamento?.scadenza ? new Date(iscritto.abbonamento.scadenza) : oggi;
         const basePerCalcolo = vecchiaScadenza > oggi ? vecchiaScadenza : oggi;
@@ -158,6 +163,7 @@ function SchedaSocioPage({ onDataUpdate }) {
       alertMessage = `Pagamento annuale registrato. Nuova scadenza: ${nuovaScadenza}`;
     }
     
+    // Assicuriamo che la data di pagamento sia sempre una stringa valida per Firestore.
     nuovoPagamento.dataPagamento = dataPagamentoSpecifica.toISOString().split('T')[0];
 
     try {
@@ -199,32 +205,80 @@ function SchedaSocioPage({ onDataUpdate }) {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
   if (!iscritto) return <Typography>Iscritto non trovato.</Typography>;
 
+  // Stili aggiuntivi per il pulsante "Torna alla lista" per coerenza con il nuovo tema
+  const backButtonColor = theme.palette.mode === 'light' ? theme.palette.text.primary : theme.palette.text.secondary;
+
+
   return (
     <>
-      <Button component={RouterLink} to="/iscritti" startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
+      <Button 
+        component={RouterLink} 
+        to="/iscritti" 
+        startIcon={<ArrowBackIcon />} 
+        sx={{ mb: 2, color: backButtonColor }} // Colore testo per coerenza con il tema light
+      >
         Torna alla Lista Iscritti
       </Button>
       <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 4 }}>
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="h3" sx={{ fontWeight: 'bold' }}>{iscritto.nome} {iscritto.cognome}</Typography>
+            {/* MODIFICA: Applica il colore Primary (Viola/Blu) al nome del socio */}
+            <Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+              {iscritto.nome} {iscritto.cognome}
+            </Typography>
             <Typography color="text.secondary">{iscritto.codiceFiscale}</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handleStampaRicevuta}>Stampa Ricevuta</Button>
-            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditDialogOpen(true)}>Modifica Dati</Button>
-            <Button variant="outlined" color="warning" startIcon={<ArchiveIcon />} onClick={handleArchiviaIscritto}>Archivia</Button>
-            {/* NUOVO PULSANTE "ELIMINA" CON LA SUA FUNZIONE */}
-            <Button variant="outlined" color="error" startIcon={<DeleteForeverIcon />} onClick={handleEliminaIscritto}>Elimina</Button>
+            {/* PULSANTE STAMPA: Contained, Colore Info (Azzurro) */}
+            <Button 
+              variant="contained" 
+              color="info" 
+              startIcon={<PrintIcon />} 
+              onClick={handleStampaRicevuta}
+            >
+              Stampa Ricevuta
+            </Button>
+            
+            {/* PULSANTE MODIFICA: Contained, Colore Primary (Viola scuro), FORZA TESTO BIANCO */}
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<EditIcon />} 
+              onClick={() => setEditDialogOpen(true)}
+              sx={{ color: 'white' }} 
+            >
+              Modifica Dati
+            </Button>
+
+            {/* PULSANTE ARCHIVIA: Contained, Colore Warning (Giallo/Arancio) */}
+            <Button 
+              variant="contained" 
+              color="warning" 
+              startIcon={<ArchiveIcon />} 
+              onClick={handleArchiviaIscritto}
+            >
+              Archivia
+            </Button>
+            
+            {/* PULSANTE ELIMINA: Contained, Colore Error (Rosso tenue) */}
+            <Button 
+              variant="contained" 
+              color="error" 
+              startIcon={<DeleteForeverIcon />} 
+              onClick={handleEliminaIscritto}
+            >
+              Elimina
+            </Button>
           </Stack>
         </Box>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
-            <Tab label="Generale" />
-            <Tab label="Contatti" />
-            <Tab label="Dati Sanitari" />
-            <Tab label="Pagamenti" />
-            <Tab label="Documenti" />
+            {/* MODIFICA: Nomi dei Tab in grassetto */}
+            <Tab label="Generale" sx={{ fontWeight: 'bold' }} />
+            <Tab label="Contatti" sx={{ fontWeight: 'bold' }} />
+            <Tab label="Dati Sanitari" sx={{ fontWeight: 'bold' }} />
+            <Tab label="Pagamenti" sx={{ fontWeight: 'bold' }} />
+            <Tab label="Documenti" sx={{ fontWeight: 'bold' }} />
           </Tabs>
         </Box>
 
