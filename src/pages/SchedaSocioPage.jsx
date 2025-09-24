@@ -1,6 +1,6 @@
 // File: src/pages/SchedaSocioPage.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // FIX: Sintassi corretta (usava => al posto di from)
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
@@ -20,7 +20,7 @@ import { generateReceipt } from '../utils/generateReceipt.js';
 import { uploadFile, fetchDocumentsByIscrittoId, deleteFile } from '../services/firebaseService.js';
 import FileUpload from '../components/FileUpload.jsx';
 import DocumentList from '../components/DocumentList.jsx';
-import moment from 'moment'; // Importato moment
+import moment from 'moment'; 
 
 // Imposta la lingua italiana per moment
 moment.locale('it');
@@ -113,7 +113,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   };
   
   const handleArchiviaIscritto = async () => {
-    if (!window.confirm("Sei sicuro di voler archiviare questo iscritto? Potrà essere ripristinato in seguito.")) return;
+    if (!window.confirm("Sei sicuro di voler archiviare questo iscritto? Potrà essere ripristino in seguito.")) return;
     try {
       const iscrittoRef = doc(db, "iscritti", iscrittoId);
       await updateDoc(iscrittoRef, { stato: "archiviato" });
@@ -137,6 +137,7 @@ function SchedaSocioPage({ onDataUpdate }) {
         cifra: cifra,
         tipo: tipo,
         sede: iscritto.sede || 'N/D',
+        meseRiferimento: tipo === 'Quota Mensile' ? mese : undefined, 
     };
     const iscrittoRef = doc(db, "iscritti", iscritto.id);
     let datiDaAggiornare = {};
@@ -149,18 +150,18 @@ function SchedaSocioPage({ onDataUpdate }) {
         if (finalMonthsPaid > 0) {
             
             const lastExpiration = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : null;
-            let baseAdvanceDate = moment(oggi).startOf('day'); 
+            let baseAdvanceDate;
 
-            if (lastExpiration && lastExpiration.isAfter(baseAdvanceDate, 'day')) {
-                // Se c'è una scadenza futura, partiamo da quella data
-                baseAdvanceDate = lastExpiration.clone();
+            if (lastExpiration && lastExpiration.isAfter(oggi, 'day')) {
+                // Se ho una scadenza FUTURA, parto dal giorno successivo
+                baseAdvanceDate = lastExpiration.clone().add(1, 'day');
             } else {
-                // Se la scadenza è passata o non esiste, impostiamo la base all'ULTIMO GIORNO del mese corrente
+                // Se la scadenza è PASSATA o non esiste, parto dalla fine del mese corrente
                 baseAdvanceDate = moment().endOf('month');
             }
             
-            // Avanza per il numero di mesi pagati e fissa la data all'ultimo giorno del mese risultante.
-            let nuovaScadenzaDate = baseAdvanceDate.add(finalMonthsPaid, 'month').endOf('month');
+            // Calcola la nuova scadenza: Avanza per il numero di mesi pagati e fissa all'ultimo giorno del mese risultante.
+            let nuovaScadenzaDate = baseAdvanceDate.clone().add(finalMonthsPaid, 'month').endOf('month');
             const nuovaScadenza = nuovaScadenzaDate.format('YYYY-MM-DD'); 
             
             datiDaAggiornare.abbonamento = { 
@@ -173,7 +174,6 @@ function SchedaSocioPage({ onDataUpdate }) {
             alertMessage = `Pagamento di ${finalMonthsPaid} mese/i registrato. Nuova scadenza: ${moment(nuovaScadenza).format('DD/MM/YYYY')}`;
             
         } else {
-             // Pagamento di acconto. Nessuna modifica alla scadenza.
              alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza.`;
         }
     } else if (tipo === 'Iscrizione / Annuale') {
@@ -233,7 +233,6 @@ function SchedaSocioPage({ onDataUpdate }) {
     return moment(dateString).format('DD/MM/YYYY');
   };
 
-  // Funzione per ottenere il nome del mese in italiano
   const getMonthName = (monthIndex) => {
     if (monthIndex == null || monthIndex === '') return 'N/D';
     return moment().month(monthIndex).format('MMMM').charAt(0).toUpperCase() + moment().month(monthIndex).format('MMMM').slice(1);

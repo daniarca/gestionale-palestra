@@ -2,7 +2,7 @@
 
 import { createTheme } from '@mui/material/styles';
 
-// --- Funzione per Applicare Regole di Contrasto Comuni ---
+// --- Funzione per Applicare Regole di Contrasto Comuni (RIUTILIZZATE) ---
 const getBaseComponents = (mode) => ({
     MuiButton: {
         styleOverrides: { 
@@ -63,22 +63,34 @@ const getBaseComponents = (mode) => ({
             root: {
                 textTransform: 'none',
                 fontWeight: 'bold',
-                '&.Mui-focusVisible': { outline: 'none !important' },
+                '&.Mui-focusVisible': { outline: 'none !important', boxShadow: 'none !important', border: 'none !important' },
                 '&.Mui-selected': {
                     backgroundColor: 'transparent',
                     color: mode === 'light' ? '#6A5ACD' : '#E2BD86',
-                    border: 'none !important' 
+                    border: 'none !important', boxShadow: 'none !important', outline: 'none !important',
                 },
                 '&:hover': { backgroundColor: 'rgba(106, 90, 205, 0.03)' },
             },
         },
     },
-    // FIX INPUT ARROTONDATO/QUADRATO
+    // FIX SCHIFEZZA LABEL: Regola globale per correggere l'allineamento della label sollevata
+    MuiInputLabel: {
+        styleOverrides: {
+            root: {
+                '&.MuiInputLabel-shrink': {
+                    // Allontana la label sollevata dalla linea di bordo
+                    transform: 'translate(14px, -9px) scale(0.75) !important', 
+                    // Aggiunge sfondo bianco per coprire la linea che passa in mezzo
+                    backgroundColor: mode === 'light' ? '#FFFFFF' : '#282C34', 
+                    padding: '0 4px',
+                },
+            },
+        },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 8, // Arrotondamento uniforme per l'input
-          // Rimuove il bordo interno che crea l'effetto doppio-cornice
+          borderRadius: 8,
           '& .MuiOutlinedInput-notchedOutline': {
             borderRadius: 8,
           },
@@ -151,8 +163,8 @@ export const themes = {
   smarthome: createTheme({
     palette: {
       mode: 'light',
-      primary: { main: '#6A5ACD' }, // Viola scuro
-      secondary: { main: '#A07EDD' },  // Viola chiaro/Lavanda
+      primary: { main: '#6A5ACD' },
+      secondary: { main: '#A07EDD' },
       success: { main: '#7BD94F' },
       warning: { main: '#FFC84E' },
       error: { main: '#FF6B6B' },
@@ -171,7 +183,7 @@ export const themes = {
       h6: { fontWeight: 600, fontSize: '1.25rem' },
     },
     shape: {
-      borderRadius: 8, // Riduci l'arrotondamento qui (da 16 a 8) per un effetto più soft
+      borderRadius: 8, // Ridotto a 8 per un look meno a "pillola" sui form
     },
     components: getBaseComponents('light'),
   }),

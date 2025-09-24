@@ -1,3 +1,5 @@
+// File: src/components/StoricoPagamenti.jsx
+
 import React, { useState, useMemo } from 'react';
 import { Typography, Grid, Box, Tooltip, FormControl, Select, MenuItem } from '@mui/material';
 
@@ -26,10 +28,12 @@ function StoricoPagamenti({ pagamenti = [], quotaMensile = 60 }) {
 
   const datiAnnoSelezionato = useMemo(() => {
     const [startYear] = annoSelezionato.split('/');
+    // L'anno sportivo va da Settembre (mese 8) a Giugno (mese 5 dell'anno dopo)
     const inizioAnnoSportivo = new Date(parseInt(startYear), 8, 1);
-    const fineAnnoSportivo = new Date(parseInt(startYear) + 1, 5, 30);
+    const fineAnnoSportivo = new Date(parseInt(startYear) + 1, 6, 0); // Ultimo giorno di Giugno
 
     const pagamentiFiltrati = pagamenti.filter(p => {
+      // Usiamo la data di pagamento per filtrare nell'anno sportivo
       if (!p.dataPagamento) return false;
       const dataPagamento = new Date(p.dataPagamento);
       return dataPagamento >= inizioAnnoSportivo && dataPagamento <= fineAnnoSportivo;
@@ -37,18 +41,20 @@ function StoricoPagamenti({ pagamenti = [], quotaMensile = 60 }) {
 
     const pagamentiPerMese = {};
     pagamentiFiltrati.forEach(p => {
-      // CORREZIONE: confronto insensibile alle maiuscole/minuscole
       if(typeof p.tipo === 'string' && p.tipo.toLowerCase().includes('mensile')) {
-        const mese = new Date(p.dataPagamento).getMonth();
-        pagamentiPerMese[mese] = (pagamentiPerMese[mese] || 0) + p.cifra;
+        // FIX CRITICO: Usa meseRiferimento salvato al momento del pagamento
+        const mese = p.meseRiferimento; 
+        
+        if (mese != null) { 
+             pagamentiPerMese[mese] = (pagamentiPerMese[mese] || 0) + p.cifra;
+        }
       }
     });
 
-    // CORREZIONE: ricerca insensibile alle maiuscole/minuscole per l'iscrizione
     const iscrizionePagata = pagamentiFiltrati.find(p => typeof p.tipo === 'string' && p.tipo.toLowerCase().includes('iscrizione'));
 
     return { pagamentiPerMese, iscrizionePagata };
-  }, [pagamenti, annoSelezionato]);
+  }, [pagamenti, annoSelezionato, quotaMensile]);
 
   const getMeseStatus = (meseIndex) => {
     const totalePagato = datiAnnoSelezionato.pagamentiPerMese[meseIndex] || 0;

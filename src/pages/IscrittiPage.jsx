@@ -9,12 +9,12 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  useTheme, // Importato per accedere al tema
+  useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close"; 
 import SearchIcon from "@mui/icons-material/Search";
-import IscrittoForm from "../components/IscrittoForm.jsx";
+import IscrittoForm from "../components/IscrittoForm.jsx"; // Il nuovo Dialog
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
 import { exportToExcel } from "../utils/exportToExcel.js"; 
@@ -25,21 +25,26 @@ import moment from "moment";
 const DRAWER_WIDTH = 280;
 
 function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false); // Ora gestisce l'apertura del Dialog
   const [activeFilter, setActiveFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   
   const showNotification = useNotification();
-  const theme = useTheme(); // Utilizza il tema per i colori
+  const theme = useTheme();
 
   const handleToggleForm = () => {
     setIsFormOpen(!isFormOpen);
   };
 
-  const handleIscrittoAdded = () => {
-    handleToggleForm();
-    onIscrittoAdded();
+  // onIscrittoAdded viene chiamato dal form dopo il salvataggio
+  const handleIscrittoAdded = (nuovoIscrittoConId) => {
+    // Non chiamo handleToggleForm() qui, la chiusura è gestita dal form stesso dopo il reset
+    onIscrittoAdded(nuovoIscrittoConId);
+  };
+  
+  const handleCloseForm = () => {
+      setIsFormOpen(false);
   };
 
   const handleSelectIscritto = (id) => {
@@ -65,6 +70,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const today = moment();
   const filteredIscritti = useMemo(() => {
     let filtered = iscrittiList;
+
     if (searchTerm) {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -73,6 +79,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           i.cognome.toLowerCase().includes(lowercasedSearchTerm)
       );
     }
+
     switch (activeFilter) {
       case "abbonamenti_scaduti":
         return filtered.filter((i) => {
@@ -108,7 +115,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         return filtered;
     }
   }, [iscrittiList, activeFilter, searchTerm, today]);
-  
+
   // Condizione per mostrare la barra fissa
   const isSelected = selectedIds.length > 0;
 
@@ -129,18 +136,19 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           variant="contained"
           color="primary"
           onClick={handleToggleForm}
-          startIcon={isFormOpen ? <CloseIcon /> : <AddIcon />} 
+          startIcon={<AddIcon />} 
           sx={{ color: 'white' }} 
         >
-          {isFormOpen ? "Chiudi Modulo" : "Aggiungi Socio"} 
+          Aggiungi Socio
         </Button>
       </Box>
 
-      {isFormOpen && (
-        <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
-          <IscrittoForm onIscrittoAdded={handleIscrittoAdded} />
-        </Paper>
-      )}
+      {/* NUOVO: Form di Aggiunta Socio come Dialog Modale */}
+      <IscrittoForm 
+        open={isFormOpen} 
+        onClose={handleCloseForm} 
+        onIscrittoAggiunto={onIscrittoAdded} 
+      />
 
       {/* Aggiungiamo un Box vuoto per compensare lo spazio occupato dalla barra fixed quando visibile */}
       <Box sx={{ height: isSelected ? '80px' : '0px' }} /> 
@@ -217,7 +225,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         />
       </Paper>
 
-      {/* NUOVO: BARRA FIXED IN OVERLAY IN BASSO (Floating) */}
+      {/* BARRA FIXED IN OVERLAY IN BASSO (Floating) */}
       <Box 
         sx={{
           position: 'fixed',
