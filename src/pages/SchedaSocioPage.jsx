@@ -20,6 +20,10 @@ import { generateReceipt } from '../utils/generateReceipt.js';
 import { uploadFile, fetchDocumentsByIscrittoId, deleteFile } from '../services/firebaseService.js';
 import FileUpload from '../components/FileUpload.jsx';
 import DocumentList from '../components/DocumentList.jsx';
+import moment from 'moment'; // Importato moment
+
+// Imposta la lingua italiana per moment
+moment.locale('it');
 
 function TabPanel(props) {
   const { children, value, index } = props;
@@ -121,50 +125,73 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
-  // FUNZIONE PER AGGIUNTA PAGAMENTO
+  // LOGICA AGGIUNTA PAGAMENTO CON SCADENZA FINE MESE (REVISIONE COMPLETA)
   const handleAggiungiPagamento = async (paymentData) => {
     if (!iscritto) return;
     const { cifra, tipo, mese } = paymentData;
-    const oggi = new Date();
-    let dataPagamentoSpecifica = oggi;
+    const oggi = moment().startOf('day'); 
+    
     const nuovoPagamento = {
-      iscrittoId: iscritto.id,
-      iscrittoNome: `${iscritto.nome} ${iscritto.cognome}`,
-      cifra: cifra,
-      tipo: tipo,
-      sede: iscritto.sede || 'N/D',
+        iscrittoId: iscritto.id,
+        iscrittoNome: `${iscritto.nome} ${iscritto.cognome}`,
+        cifra: cifra,
+        tipo: tipo,
+        sede: iscritto.sede || 'N/D',
     };
     const iscrittoRef = doc(db, "iscritti", iscritto.id);
     let datiDaAggiornare = {};
     let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato.`;
 
     if (tipo === 'Quota Mensile') {
-      // FIX SINTASSI: Risoluzione dell'errore di sintassi nel calcolo dell'anno.
-      // Assumiamo l'anno corrente a meno che il mese non sia nel passato della stagione (dopo Settembre)
-      const targetYear = (mese < oggi.getMonth() && oggi.getMonth() >= 8) ? oggi.getFullYear() + 1 : oggi.getFullYear();
+        const finalQuotaMensile = iscritto.quotaMensile || 60;
+        const finalMonthsPaid = Math.floor(cifra / finalQuotaMensile);
 
-      dataPagamentoSpecifica = new Date(targetYear, mese, 15);
-      
-      if (cifra >= (iscritto.quotaMensile || 60)) {
-        const vecchiaScadenza = iscritto.abbonamento?.scadenza ? new Date(iscritto.abbonamento.scadenza) : oggi;
-        const basePerCalcolo = vecchiaScadenza > oggi ? vecchiaScadenza : oggi;
-        basePerCalcolo.setMonth(basePerCalcolo.getMonth() + 1);
-        const nuovaScadenza = basePerCalcolo.toISOString().split('T')[0];
-        datiDaAggiornare.abbonamento = { ...iscritto.abbonamento, scadenza: nuovaScadenza };
-        alertMessage += ` Nuova scadenza: ${nuovaScadenza}`;
-      }
+        if (finalMonthsPaid > 0) {
+            
+            const lastExpiration = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : null;
+            let baseAdvanceDate = moment(oggi).startOf('day'); 
+
+            if (lastExpiration && lastExpiration.isAfter(baseAdvanceDate, 'day')) {
+                // Se c'è una scadenza futura, partiamo da quella data
+                baseAdvanceDate = lastExpiration.clone();
+            } else {
+                // Se la scadenza è passata o non esiste, impostiamo la base all'ULTIMO GIORNO del mese corrente
+                baseAdvanceDate = moment().endOf('month');
+            }
+            
+            // Avanza per il numero di mesi pagati e fissa la data all'ultimo giorno del mese risultante.
+            let nuovaScadenzaDate = baseAdvanceDate.add(finalMonthsPaid, 'month').endOf('month');
+            const nuovaScadenza = nuovaScadenzaDate.format('YYYY-MM-DD'); 
+            
+            datiDaAggiornare.abbonamento = { 
+                ...iscritto.abbonamento, 
+                scadenza: nuovaScadenza,
+                // Il mese pagato è l'indice del mese di scadenza (ultimo mese coperto).
+                mesePagato: nuovaScadenzaDate.month(), 
+            };
+            
+            alertMessage = `Pagamento di ${finalMonthsPaid} mese/i registrato. Nuova scadenza: ${moment(nuovaScadenza).format('DD/MM/YYYY')}`;
+            
+        } else {
+             // Pagamento di acconto. Nessuna modifica alla scadenza.
+             alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza.`;
+        }
     } else if (tipo === 'Iscrizione / Annuale') {
-      const vecchiaScadenza = iscritto.abbonamento?.scadenza ? new Date(iscritto.abbonamento.scadenza) : oggi;
-      const basePerCalcolo = vecchiaScadenza > oggi ? vecchiaScadenza : oggi;
-      basePerCalcolo.setFullYear(basePerCalcolo.getFullYear() + 1);
-      const nuovaScadenza = basePerCalcolo.toISOString().split('T')[0];
-      datiDaAggiornare.abbonamento = { ...iscritto.abbonamento, scadenza: nuovaScadenza };
-      datiDaAggiornare.quotaIscrizione = (iscritto.quotaIscrizione || 0) + cifra;
-      alertMessage = `Pagamento annuale registrato. Nuova scadenza: ${nuovaScadenza}`;
+        // La logica Annuale avanza di un anno e fissa a fine mese.
+        const vecchiaScadenza = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : moment(oggi);
+        const nuovaScadenzaDate = vecchiaScadenza.clone().add(1, 'year').endOf('month'); 
+        const nuovaScadenza = nuovaScadenzaDate.format('YYYY-MM-DD');
+
+        datiDaAggiornare.abbonamento = { 
+            ...iscritto.abbonamento, 
+            scadenza: nuovaScadenza,
+            mesePagato: nuovaScadenzaDate.month(), 
+        };
+        datiDaAggiornare.quotaIscrizione = (iscritto.quotaIscrizione || 0) + cifra;
+        alertMessage = `Pagamento annuale registrato. Nuova scadenza: ${moment(nuovaScadenza).format('DD/MM/YYYY')}`;
     }
     
-    // Assicuriamo che la data di pagamento sia sempre una stringa valida per Firestore.
-    nuovoPagamento.dataPagamento = dataPagamentoSpecifica.toISOString().split('T')[0];
+    nuovoPagamento.dataPagamento = moment(oggi).format('YYYY-MM-DD'); 
 
     try {
         await addDoc(collection(db, "pagamenti"), nuovoPagamento);
@@ -181,7 +208,6 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
-  // NUOVA FUNZIONE PER L'ELIMINAZIONE DEFINITIVA
   const handleEliminaIscritto = async () => {
     if (!window.confirm("ATTENZIONE: Stai per eliminare definitivamente questo iscritto e tutti i suoi dati. L'azione è irreversibile. Continuare?")) return;
     try {
@@ -200,14 +226,23 @@ function SchedaSocioPage({ onDataUpdate }) {
   };
   
   const handleTabChange = (event, newValue) => { setTabValue(newValue); };
-  const formatDate = (dateString) => { if (!dateString) return 'N/D'; return new Date(dateString).toLocaleDateString('it-IT'); };
+  
+  // Utilizzo di moment per garantire il formato DD/MM/YYYY
+  const formatDate = (dateString) => { 
+    if (!dateString) return 'N/D'; 
+    return moment(dateString).format('DD/MM/YYYY');
+  };
+
+  // Funzione per ottenere il nome del mese in italiano
+  const getMonthName = (monthIndex) => {
+    if (monthIndex == null || monthIndex === '') return 'N/D';
+    return moment().month(monthIndex).format('MMMM').charAt(0).toUpperCase() + moment().month(monthIndex).format('MMMM').slice(1);
+  };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
   if (!iscritto) return <Typography>Iscritto non trovato.</Typography>;
 
-  // Stili aggiuntivi per il pulsante "Torna alla lista" per coerenza con il nuovo tema
   const backButtonColor = theme.palette.mode === 'light' ? theme.palette.text.primary : theme.palette.text.secondary;
-
 
   return (
     <>
@@ -215,21 +250,19 @@ function SchedaSocioPage({ onDataUpdate }) {
         component={RouterLink} 
         to="/iscritti" 
         startIcon={<ArrowBackIcon />} 
-        sx={{ mb: 2, color: backButtonColor }} // Colore testo per coerenza con il tema light
+        sx={{ mb: 2, color: backButtonColor }} 
       >
         Torna alla Lista Iscritti
       </Button>
       <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 4 }}>
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            {/* MODIFICA: Applica il colore Primary (Viola/Blu) al nome del socio */}
             <Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
               {iscritto.nome} {iscritto.cognome}
             </Typography>
             <Typography color="text.secondary">{iscritto.codiceFiscale}</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            {/* PULSANTE STAMPA: Contained, Colore Info (Azzurro) */}
             <Button 
               variant="contained" 
               color="info" 
@@ -238,8 +271,6 @@ function SchedaSocioPage({ onDataUpdate }) {
             >
               Stampa Ricevuta
             </Button>
-            
-            {/* PULSANTE MODIFICA: Contained, Colore Primary (Viola scuro), FORZA TESTO BIANCO */}
             <Button 
               variant="contained" 
               color="primary" 
@@ -249,8 +280,6 @@ function SchedaSocioPage({ onDataUpdate }) {
             >
               Modifica Dati
             </Button>
-
-            {/* PULSANTE ARCHIVIA: Contained, Colore Warning (Giallo/Arancio) */}
             <Button 
               variant="contained" 
               color="warning" 
@@ -259,8 +288,6 @@ function SchedaSocioPage({ onDataUpdate }) {
             >
               Archivia
             </Button>
-            
-            {/* PULSANTE ELIMINA: Contained, Colore Error (Rosso tenue) */}
             <Button 
               variant="contained" 
               color="error" 
@@ -273,7 +300,6 @@ function SchedaSocioPage({ onDataUpdate }) {
         </Box>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
-            {/* MODIFICA: Nomi dei Tab in grassetto */}
             <Tab label="Generale" sx={{ fontWeight: 'bold' }} />
             <Tab label="Contatti" sx={{ fontWeight: 'bold' }} />
             <Tab label="Dati Sanitari" sx={{ fontWeight: 'bold' }} />
@@ -289,12 +315,46 @@ function SchedaSocioPage({ onDataUpdate }) {
             <Grid item xs={12} sm={6}><Typography><strong>Sede:</strong> {iscritto.sede || 'N/D'}</Typography></Grid>
           </Grid>
           <Divider sx={{ my: 2 }} />
+          
+          {/* STATO ABBONAMENTO CON MESE DI RIFERIMENTO */}
+          <Typography variant="h6" gutterBottom>Stato Abbonamento</Typography>
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            <Grid item xs={12} sm={6}>
+                <Typography>
+                    <strong>Scadenza Abbonamento:</strong> {formatDate(iscritto.abbonamento?.scadenza)}
+                </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <Typography>
+                    <strong>Ultimo Mese Pagato:</strong> {getMonthName(iscritto.abbonamento?.mesePagato)}
+                </Typography>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 2 }} />
+          
           <Typography variant="h6" gutterBottom>Dati Familiari</Typography>
           <Grid container spacing={1}>
             <Grid item xs={12} sm={6}><Typography><strong>Genitore:</strong> {iscritto.nomeGenitore || 'N/D'}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography><strong>CF Genitore:</strong> {iscritto.cfGenitore || 'N/D'}</Typography></Grid>
           </Grid>
+          
+          {/* NOTE SEGRETERIA */}
+          <Divider sx={{ my: 2 }} /> 
+          <Typography variant="h6" gutterBottom>Note Segreteria</Typography>
+          <Paper 
+            variant="outlined" 
+            sx={{ 
+              p: 2, 
+              backgroundColor: theme.palette.mode === 'light' ? theme.palette.grey[50] : theme.palette.background.default 
+            }}
+          >
+             <Typography sx={{ whiteSpace: 'pre-wrap' }}>
+                {iscritto.annotazioni || 'Nessuna nota.'}
+             </Typography>
+          </Paper>
+          
         </TabPanel>
+        
         <TabPanel value={tabValue} index={1}>
           <Typography variant="h6" gutterBottom>Indirizzo e Contatti</Typography>
           <Grid container spacing={1}>

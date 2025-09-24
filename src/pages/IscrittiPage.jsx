@@ -9,15 +9,20 @@ import {
   Chip,
   TextField,
   InputAdornment,
+  useTheme, // Importato per accedere al tema
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close"; 
 import SearchIcon from "@mui/icons-material/Search";
 import IscrittoForm from "../components/IscrittoForm.jsx";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
-import { exportToExcel } from "../utils/exportToExcel.js";
+import { exportToExcel } from "../utils/exportToExcel.js"; 
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import moment from "moment";
+
+// Constants per il calcolo della posizione (drawerWidth da Layout.jsx)
+const DRAWER_WIDTH = 280;
 
 function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -26,6 +31,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const [selectedIds, setSelectedIds] = useState([]);
   
   const showNotification = useNotification();
+  const theme = useTheme(); // Utilizza il tema per i colori
 
   const handleToggleForm = () => {
     setIsFormOpen(!isFormOpen);
@@ -59,7 +65,6 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const today = moment();
   const filteredIscritti = useMemo(() => {
     let filtered = iscrittiList;
-    // ... (Logica di filtraggio omessa per brevità)
     if (searchTerm) {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -103,10 +108,9 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         return filtered;
     }
   }, [iscrittiList, activeFilter, searchTerm, today]);
-
-  // STILE PER GESTIRE LA VISIBILITÀ SENZA REFLOW
-  const exportBarHeight = selectedIds.length > 0 ? 60 : 0;
-  const exportBarVisibility = selectedIds.length > 0 ? 'visible' : 'hidden';
+  
+  // Condizione per mostrare la barra fissa
+  const isSelected = selectedIds.length > 0;
 
   return (
     <Box>
@@ -125,10 +129,10 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           variant="contained"
           color="primary"
           onClick={handleToggleForm}
-          startIcon={<AddIcon />}
+          startIcon={isFormOpen ? <CloseIcon /> : <AddIcon />} 
           sx={{ color: 'white' }} 
         >
-          {isFormOpen ? "Chiudi Form" : "Aggiungi Iscritto"}
+          {isFormOpen ? "Chiudi Modulo" : "Aggiungi Socio"} 
         </Button>
       </Box>
 
@@ -138,35 +142,8 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         </Paper>
       )}
 
-      {/* FIX REFLOW: Il Paper rimane sempre in posizione, ma si comprime a 0px di altezza quando vuoto */}
-      <Box sx={{ 
-            height: exportBarHeight, 
-            opacity: selectedIds.length > 0 ? 1 : 0, 
-            visibility: exportBarVisibility,
-            transition: 'height 0.3s, opacity 0.3s',
-            mb: 3
-          }}>
-        <Paper sx={{ 
-            p: 2, 
-            borderRadius: 4, 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            height: '100%',
-          }}>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {selectedIds.length} Soci Selezionati
-            </Typography>
-            <Button 
-                variant="contained" 
-                color="success" 
-                onClick={handleExportSelected}
-                startIcon={<FileDownloadIcon />}
-            >
-                Esporta Lista Gara (.xlsx)
-            </Button>
-        </Paper>
-      </Box>
+      {/* Aggiungiamo un Box vuoto per compensare lo spazio occupato dalla barra fixed quando visibile */}
+      <Box sx={{ height: isSelected ? '80px' : '0px' }} /> 
 
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
@@ -239,6 +216,41 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           activeFilter={activeFilter}
         />
       </Paper>
+
+      {/* NUOVO: BARRA FIXED IN OVERLAY IN BASSO (Floating) */}
+      <Box 
+        sx={{
+          position: 'fixed',
+          bottom: 24, // Distaccato dal basso (24px)
+          left: DRAWER_WIDTH + 24, // Distaccato dalla sidebar (24px di margine)
+          right: 24, // Distaccato dal lato destro (24px)
+          zIndex: 1100, 
+          display: isSelected ? 'block' : 'none', // Nasconde quando non selezionato
+        }}
+      >
+        <Paper 
+          elevation={6} // Aggiunge ombra per farlo "fluttuare"
+          sx={{
+            padding: 2,
+            borderRadius: theme.shape.borderRadius * 2, // Arrotondamento marcato (16px)
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="body1" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+              {selectedIds.length} Soci Selezionati
+          </Typography>
+          <Button 
+              variant="contained" 
+              color="success" 
+              onClick={handleExportSelected}
+              startIcon={<FileDownloadIcon />}
+          >
+              Esporta Lista Gara (.xlsx)
+          </Button>
+        </Paper>
+      </Box>
     </Box>
   );
 }

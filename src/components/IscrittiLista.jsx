@@ -1,3 +1,5 @@
+// File: src/components/IscrittiLista.jsx
+
 import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
@@ -9,15 +11,18 @@ import {
   Checkbox,
   Chip,
   Stack,
+  useTheme,
 } from "@mui/material";
 import moment from "moment";
 
 function IscrittiLista({
   iscritti = [],
-  onSelect,
-  selection = [],
+  onSelect, 
+  selection = [], 
   activeFilter,
 }) {
+  const theme = useTheme();
+
   const handleCheckboxClick = (e, id) => {
     e.stopPropagation();
     onSelect(id);
@@ -95,46 +100,71 @@ function IscrittiLista({
         );
         const abbonamentoStatus = getAbbonamentoStatus(iscritto.abbonamento);
 
+        // STILE SCHEDA SELEZIONATA: Arrotondamento ridotto e bordi chiari
+        // Utilizziamo un arrotondamento molto basso (4px) per renderla rettangolare
+        const selectedStyle = isSelected ? {
+            backgroundColor: theme.palette.primary.main + '20', 
+            border: `1px solid ${theme.palette.primary.main}`,
+            borderRadius: 4, // Arrotondamento minimo
+            minHeight: 140, // Altezza minima standard
+        } : {
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 4, // Arrotondamento minimo anche quando non selezionato
+            minHeight: 140, // Altezza minima standard
+        };
+
         return (
           <Grid item xs={12} sm={6} md={4} key={iscritto.id}>
             <Card
-              elevation={3}
+              elevation={0}
               sx={{
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
-                borderRadius: 2,
-                backgroundColor: isSelected
-                  ? "primary.dark"
-                  : "background.paper",
-                transition: "background-color 0.2s",
-                border: "1px solid",
-                borderColor: isSelected ? "primary.main" : "transparent",
+                transition: "all 0.2s",
+                ...selectedStyle,
               }}
             >
+              {/* CardActionArea ora avvolge solo il contenuto cliccabile per il dettaglio */}
               <CardActionArea
                 component={RouterLink}
                 to={`/iscritti/${iscritto.id}`}
                 sx={{ flexGrow: 1, p: 2 }}
               >
+                {/* Checkbox per la selezione in alto a destra */}
                 <Checkbox
                   checked={isSelected}
                   onClick={(e) => handleCheckboxClick(e, iscritto.id)}
-                  sx={{ position: "absolute", top: 4, right: 4, zIndex: 2 }}
+                  sx={{ 
+                    position: "absolute", 
+                    top: 4, 
+                    right: 4, 
+                    zIndex: 2,
+                    color: isSelected ? theme.palette.primary.main : theme.palette.text.secondary 
+                  }}
                 />
                 <Box>
                   <Typography
                     variant="h6"
                     component="p"
-                    sx={{ fontWeight: "bold", mb: 1, pr: "30px" }}
+                    sx={{ fontWeight: "bold", mb: 0.5, pr: "30px", color: theme.palette.primary.main }} // Nome Primary
                   >
                     {iscritto.nome} {iscritto.cognome}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {getScadenzaText(iscritto, activeFilter)}
                   </Typography>
+                  {/* NUOVI CAMPI VISUALIZZATI */}
+                  {(iscritto.livello || iscritto.categoria) && (
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                          {iscritto.livello && <Chip label={`Livello: ${iscritto.livello}`} size="small" variant="outlined" sx={{ color: theme.palette.text.primary, borderColor: theme.palette.primary.main }} />}
+                          {iscritto.categoria && <Chip label={`Cat.: ${iscritto.categoria}`} size="small" variant="outlined" sx={{ color: theme.palette.text.primary, borderColor: theme.palette.secondary.main }} />}
+                      </Stack>
+                  )}
                 </Box>
               </CardActionArea>
+              {/* Stack rimane come footer di stato */}
               <Stack
                 direction="row"
                 spacing={1}

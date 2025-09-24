@@ -1,9 +1,7 @@
 // File: src/components/IscrittoForm.jsx
 
 import { useState } from 'react';
-import { Box, TextField, Button, Checkbox, FormControlLabel, Grid, Typography, Paper, Collapse, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, TextField, Button, Checkbox, FormControlLabel, Grid, Typography, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 
 // Nuove costanti per Livelli e Categorie (per ginnastica artistica)
@@ -11,8 +9,6 @@ const LIVELLI = ['Base', 'Intermedio', 'Avanzato', 'Agonismo'];
 const CATEGORIE = ['Microbaby', 'Allieva', 'Junior', 'Senior'];
 
 function IscrittoForm({ onIscrittoAggiunto }) {
-  const [isOpen, setIsOpen] = useState(false);
-  
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
   const [dataNascita, setDataNascita] = useState('');
@@ -63,31 +59,17 @@ function IscrittoForm({ onIscrittoAggiunto }) {
     setHaCertificato(false); setScadenzaCertificato(''); setScadenzaAbbonamento('');
     setSede('Frascati'); setQuotaIscrizione(''); setQuotaMensile('');
     setLivello(''); setCategoria(''); // Reset Nuovi campi
-    setIsOpen(false);
   };
 
   return (
-    <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, backgroundColor: 'background.paper', borderRadius: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>Anagrafica Soci</Typography>
-        <Button 
-          variant="contained" 
-          color="primary"
-          startIcon={isOpen ? <CloseIcon /> : <AddCircleOutlineIcon />} 
-          onClick={() => setIsOpen(!isOpen)} 
-          sx={{ height: '40px', color: 'white' }}
-        >
-          {isOpen ? 'Chiudi Form Iscrizione' : 'Apri Form Iscrizione'}
-        </Button>
-      </Box>
-      <Collapse in={isOpen}>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
-          <Grid container spacing={2}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+        <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', mb: 2 }}>Nuova Iscrizione Socio</Typography>
+        <Grid container spacing={2}>
             {/* Campi Anagrafici Base */}
             <Grid item xs={12} sm={6}><TextField size="small" fullWidth variant="outlined" label="Nome *" value={nome} onChange={(e) => setNome(e.target.value)} required /></Grid>
             <Grid item xs={12} sm={6}><TextField size="small" fullWidth variant="outlined" label="Cognome *" value={cognome} onChange={(e) => setCognome(e.target.value)} required /></Grid>
             
-            {/* Campi Livello e Categoria (Aumento la larghezza a sm=3 per 4 campi per riga, o 6 per 2 campi, a 12 per 1 campo) */}
+            {/* Campi Livello e Categoria */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small" variant="outlined">
                 <InputLabel>Livello</InputLabel>
@@ -140,12 +122,19 @@ function IscrittoForm({ onIscrittoAggiunto }) {
             <Grid item xs={12}><TextField size="small" fullWidth variant="outlined" label="Annotazioni Segreteria" multiline rows={3} value={annotazioni} onChange={(e) => setAnnotazioni(e.target.value)} /></Grid>
             <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}><FormControlLabel control={<Checkbox checked={haCertificato} onChange={(e) => setHaCertificato(e.target.checked)} />} label="Certificato Medico Presente" /></Grid>
             <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Button type="submit" variant="contained" color="primary" startIcon={<SaveIcon />} sx={{ height: '40px', color: 'white' }}>Salva Iscrizione</Button>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                color="primary" 
+                startIcon={<SaveIcon />} 
+                // Il testo diventa bianco grazie a questo stile e al fix in theme.js
+                sx={{ height: '40px', color: 'white' }} 
+              >
+                Salva Iscrizione
+              </Button>
             </Grid>
-          </Grid>
-        </Box>
-      </Collapse>
-    </Paper>
+        </Grid>
+    </Box>
   );
 }
 export default IscrittoForm;

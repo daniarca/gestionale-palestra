@@ -40,7 +40,7 @@ h1 {
 }
 
 input[type="text"], input[type="date"] {
-  /* Rimosso background-color: #282c34; e color: white; - FIX BARRA SEARCH */
+  /* Rimosso background-color: #282c34; e color: white; */
   padding: 0.8rem;
   border-radius: 4px;
   border: 1px solid #555;
@@ -63,18 +63,5 @@ input[type="text"], input[type="date"] {
 }
 
 
-button[type="submit"] {
-  background-color: #61dafb;
-  color: #282c34;
-  border: none;
-  padding: 1rem;
-  border-radius: 4px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button[type="submit"]:hover {
-  background-color: #79e2ff;
-}
+/* RIMOSSA STILIZZAZIONE HARDCODED DI button[type="submit"] per usare MUI */
+/* RIMOSSA STILIZZAZIONE HARDCODED DI button[type="submit"]:hover */
