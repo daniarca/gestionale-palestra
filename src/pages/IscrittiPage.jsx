@@ -12,12 +12,12 @@ import {
   useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close"; 
+import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import IscrittoForm from "../components/IscrittoForm.jsx"; // Il nuovo Dialog
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
-import { exportToExcel } from "../utils/exportToExcel.js"; 
+import { exportToExcel } from "../utils/exportToExcel.js";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import moment from "moment";
 
@@ -29,7 +29,7 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   const [activeFilter, setActiveFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
-  
+
   const showNotification = useNotification();
   const theme = useTheme();
 
@@ -37,14 +37,14 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
     setIsFormOpen(!isFormOpen);
   };
 
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+  };
+
   // onIscrittoAdded viene chiamato dal form dopo il salvataggio
   const handleIscrittoAdded = (nuovoIscrittoConId) => {
-    // Non chiamo handleToggleForm() qui, la chiusura è gestita dal form stesso dopo il reset
+    // La chiusura del Dialog è gestita da IscrittoForm.jsx
     onIscrittoAdded(nuovoIscrittoConId);
-  };
-  
-  const handleCloseForm = () => {
-      setIsFormOpen(false);
   };
 
   const handleSelectIscritto = (id) => {
@@ -56,16 +56,20 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
   };
 
   const handleExportSelected = () => {
-      if (selectedIds.length === 0) {
-          showNotification("Seleziona almeno un socio da esportare.", "warning");
-          return;
-      }
-      const selectedIscritti = iscrittiList.filter(i => selectedIds.includes(i.id));
-      exportToExcel(selectedIscritti, "Lista_Atleti_Gara");
-      showNotification(`Esportati ${selectedIds.length} soci in Lista_Atleti_Gara.xlsx`, "success");
-      setSelectedIds([]); 
+    if (selectedIds.length === 0) {
+      showNotification("Seleziona almeno un socio da esportare.", "warning");
+      return;
+    }
+    const selectedIscritti = iscrittiList.filter((i) =>
+      selectedIds.includes(i.id)
+    );
+    exportToExcel(selectedIscritti, "Lista_Atleti_Gara");
+    showNotification(
+      `Esportati ${selectedIds.length} soci in Lista_Atleti_Gara.xlsx`,
+      "success"
+    );
+    setSelectedIds([]);
   };
-
 
   const today = moment();
   const filteredIscritti = useMemo(() => {
@@ -136,23 +140,21 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
           variant="contained"
           color="primary"
           onClick={handleToggleForm}
-          startIcon={<AddIcon />} 
-          sx={{ color: 'white' }} 
+          startIcon={<AddIcon />}
+          sx={{ color: "white" }}
         >
           Aggiungi Socio
         </Button>
       </Box>
 
-      {/* NUOVO: Form di Aggiunta Socio come Dialog Modale */}
-      <IscrittoForm 
-        open={isFormOpen} 
-        onClose={handleCloseForm} 
-        onIscrittoAggiunto={onIscrittoAdded} 
+      {/* Form di Aggiunta Socio come Dialog Modale */}
+      <IscrittoForm
+        open={isFormOpen}
+        onClose={handleCloseForm}
+        onIscrittoAggiunto={onIscrittoAdded}
       />
 
-      {/* Aggiungiamo un Box vuoto per compensare lo spazio occupato dalla barra fixed quando visibile */}
-      <Box sx={{ height: isSelected ? '80px' : '0px' }} /> 
-
+      {/* Rimosso il Box che causava il reflow in cima */}
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
         <Box sx={{ mb: 3 }}>
@@ -187,32 +189,60 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
             <Chip
               label="Abbonamenti Scaduti"
               onClick={() => setActiveFilter("abbonamenti_scaduti")}
-              color={activeFilter === "abbonamenti_scaduti" ? "error" : "default"}
-              variant={activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"}
+              color={
+                activeFilter === "abbonamenti_scaduti" ? "error" : "default"
+              }
+              variant={
+                activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"
+              }
             />
             <Chip
               label="Abbonamenti in scadenza"
               onClick={() => setActiveFilter("abbonamenti_in_scadenza")}
-              color={activeFilter === "abbonamenti_in_scadenza" ? "warning" : "default"}
-              variant={activeFilter === "abbonamenti_in_scadenza" ? "filled" : "outlined"}
+              color={
+                activeFilter === "abbonamenti_in_scadenza"
+                  ? "warning"
+                  : "default"
+              }
+              variant={
+                activeFilter === "abbonamenti_in_scadenza"
+                  ? "filled"
+                  : "outlined"
+              }
             />
             <Chip
               label="Certificati Scaduti"
               onClick={() => setActiveFilter("certificati_scaduti")}
-              color={activeFilter === "certificati_scaduti" ? "error" : "default"}
-              variant={activeFilter === "certificati_scaduti" ? "filled" : "outlined"}
+              color={
+                activeFilter === "certificati_scaduti" ? "error" : "default"
+              }
+              variant={
+                activeFilter === "certificati_scaduti" ? "filled" : "outlined"
+              }
             />
             <Chip
               label="Certificati Mancanti"
               onClick={() => setActiveFilter("certificati_mancanti")}
-              color={activeFilter === "certificati_mancanti" ? "error" : "default"}
-              variant={activeFilter === "certificati_mancanti" ? "filled" : "outlined"}
+              color={
+                activeFilter === "certificati_mancanti" ? "error" : "default"
+              }
+              variant={
+                activeFilter === "certificati_mancanti" ? "filled" : "outlined"
+              }
             />
             <Chip
               label="Certificati in scadenza"
               onClick={() => setActiveFilter("certificati_in_scadenza")}
-              color={activeFilter === "certificati_in_scadenza" ? "warning" : "default"}
-              variant={activeFilter === "certificati_in_scadenza" ? "filled" : "outlined"}
+              color={
+                activeFilter === "certificati_in_scadenza"
+                  ? "warning"
+                  : "default"
+              }
+              variant={
+                activeFilter === "certificati_in_scadenza"
+                  ? "filled"
+                  : "outlined"
+              }
             />
           </Box>
         </Box>
@@ -226,36 +256,39 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
       </Paper>
 
       {/* BARRA FIXED IN OVERLAY IN BASSO (Floating) */}
-      <Box 
+      <Box
         sx={{
-          position: 'fixed',
+          position: "fixed",
           bottom: 24, // Distaccato dal basso (24px)
           left: DRAWER_WIDTH + 24, // Distaccato dalla sidebar (24px di margine)
           right: 24, // Distaccato dal lato destro (24px)
-          zIndex: 1100, 
-          display: isSelected ? 'block' : 'none', // Nasconde quando non selezionato
+          zIndex: 1100,
+          display: isSelected ? "block" : "none", // Nasconde quando non selezionato
         }}
       >
-        <Paper 
+        <Paper
           elevation={6} // Aggiunge ombra per farlo "fluttuare"
           sx={{
             padding: 2,
             borderRadius: theme.shape.borderRadius * 2, // Arrotondamento marcato (16px)
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          <Typography variant="body1" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-              {selectedIds.length} Soci Selezionati
-          </Typography>
-          <Button 
-              variant="contained" 
-              color="success" 
-              onClick={handleExportSelected}
-              startIcon={<FileDownloadIcon />}
+          <Typography
+            variant="body1"
+            sx={{ fontWeight: "bold", color: theme.palette.text.primary }}
           >
-              Esporta Lista Gara (.xlsx)
+            {selectedIds.length} Soci Selezionati
+          </Typography>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleExportSelected}
+            startIcon={<FileDownloadIcon />}
+          >
+            Esporta Lista Gara (.xlsx)
           </Button>
         </Paper>
       </Box>
