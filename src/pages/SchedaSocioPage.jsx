@@ -1,6 +1,4 @@
-// File: src/pages/SchedaSocioPage.jsx
-
-import React, { useState, useEffect } from 'react'; // FIX: Sintassi corretta (usava => al posto di from)
+import React, { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
@@ -20,9 +18,9 @@ import { generateReceipt } from '../utils/generateReceipt.js';
 import { uploadFile, fetchDocumentsByIscrittoId, deleteFile } from '../services/firebaseService.js';
 import FileUpload from '../components/FileUpload.jsx';
 import DocumentList from '../components/DocumentList.jsx';
-import moment from 'moment'; 
+import moment from 'moment';
+import 'moment/locale/it';
 
-// Imposta la lingua italiana per moment
 moment.locale('it');
 
 function TabPanel(props) {
@@ -34,7 +32,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   const { iscrittoId } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
-  const theme = useTheme(); 
+  const theme = useTheme();
 
   const [iscritto, setIscritto] = useState(null);
   const [pagamenti, setPagamenti] = useState([]);
@@ -42,7 +40,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
-  
+
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [isPagamentoDialogOpen, setPagamentoDialogOpen] = useState(false);
 
@@ -54,14 +52,14 @@ function SchedaSocioPage({ onDataUpdate }) {
       if (docSnap.exists()) {
         const iscrittoData = { id: docSnap.id, ...docSnap.data() };
         setIscritto(iscrittoData);
-        
+
         const [pagamentiList, documentiList] = await Promise.all([
           getDocs(query(collection(db, "pagamenti"), where("iscrittoId", "==", iscrittoId))).then(snap => snap.docs.map(d => d.data())),
           fetchDocumentsByIscrittoId(iscrittoId),
         ]);
         setPagamenti(pagamentiList);
         setDocumenti(documentiList);
-        
+
       } else {
         showNotification("Iscritto non trovato.", "error");
         navigate('/iscritti');
@@ -76,7 +74,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   useEffect(() => {
     fetchIscritto();
   }, [iscrittoId]);
-  
+
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
@@ -111,7 +109,7 @@ function SchedaSocioPage({ onDataUpdate }) {
       if (onDataUpdate) onDataUpdate();
     } catch (e) { showNotification("Errore durante l'aggiornamento.", 'error'); }
   };
-  
+
   const handleArchiviaIscritto = async () => {
     if (!window.confirm("Sei sicuro di voler archiviare questo iscritto? Potrà essere ripristino in seguito.")) return;
     try {
@@ -125,73 +123,62 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
-  // LOGICA AGGIUNTA PAGAMENTO CON SCADENZA FINE MESE (REVISIONE COMPLETA)
+  // <-- INIZIO LOGICA PAGAMENTO CON NUOVE REGOLE -->
   const handleAggiungiPagamento = async (paymentData) => {
     if (!iscritto) return;
     const { cifra, tipo, mese } = paymentData;
-    const oggi = moment().startOf('day'); 
-    
+
     const nuovoPagamento = {
         iscrittoId: iscritto.id,
         iscrittoNome: `${iscritto.nome} ${iscritto.cognome}`,
         cifra: cifra,
         tipo: tipo,
         sede: iscritto.sede || 'N/D',
-        meseRiferimento: tipo === 'Quota Mensile' ? mese : undefined, 
+        dataPagamento: moment().format('YYYY-MM-DD'),
     };
+
+    if (tipo === 'Quota Mensile') {
+        nuovoPagamento.meseRiferimento = mese;
+    }
+
     const iscrittoRef = doc(db, "iscritti", iscritto.id);
     let datiDaAggiornare = {};
     let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato.`;
 
     if (tipo === 'Quota Mensile') {
-        const finalQuotaMensile = iscritto.quotaMensile || 60;
-        const finalMonthsPaid = Math.floor(cifra / finalQuotaMensile);
+        const quotaMensileStandard = iscritto.quotaMensile || 60;
+        const mesiPagati = Math.floor(cifra / quotaMensileStandard);
 
-        if (finalMonthsPaid > 0) {
+        if (mesiPagati > 0) {
+            const oggi = moment();
+            const scadenzaAttuale = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : null;
             
-            const lastExpiration = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : null;
-            let baseAdvanceDate;
+            // La base per il calcolo è la data più avanti nel tempo tra l'inizio del mese corrente e la scadenza attuale.
+            // Se la scadenza è già futura, partiamo da lì per non perdere giorni.
+            // Se è passata, partiamo dall'inizio del mese in cui viene fatto il pagamento.
+            const baseDiPartenza = (scadenzaAttuale && scadenzaAttuale.isAfter(oggi)) ? scadenzaAttuale.clone().startOf('month') : oggi.clone().startOf('month');
 
-            if (lastExpiration && lastExpiration.isAfter(oggi, 'day')) {
-                // Se ho una scadenza FUTURA, parto dal giorno successivo
-                baseAdvanceDate = lastExpiration.clone().add(1, 'day');
-            } else {
-                // Se la scadenza è PASSATA o non esiste, parto dalla fine del mese corrente
-                baseAdvanceDate = moment().endOf('month');
-            }
-            
-            // Calcola la nuova scadenza: Avanza per il numero di mesi pagati e fissa all'ultimo giorno del mese risultante.
-            let nuovaScadenzaDate = baseAdvanceDate.clone().add(finalMonthsPaid, 'month').endOf('month');
-            const nuovaScadenza = nuovaScadenzaDate.format('YYYY-MM-DD'); 
-            
-            datiDaAggiornare.abbonamento = { 
-                ...iscritto.abbonamento, 
-                scadenza: nuovaScadenza,
-                // Il mese pagato è l'indice del mese di scadenza (ultimo mese coperto).
-                mesePagato: nuovaScadenzaDate.month(), 
+            // Calcola l'ultimo mese completamente coperto dal pagamento
+            const ultimoMeseCoperto = baseDiPartenza.clone().add(mesiPagati - 1, 'months');
+
+            // La nuova scadenza è il primo giorno del mese SUCCESSIVO all'ultimo mese coperto
+            const nuovaScadenzaDate = ultimoMeseCoperto.clone().add(1, 'month').startOf('month');
+            const nuovaScadenzaString = nuovaScadenzaDate.format('YYYY-MM-DD');
+
+            datiDaAggiornare.abbonamento = {
+                scadenza: nuovaScadenzaString,
+                mesePagato: ultimoMeseCoperto.month() // Salva l'indice dell'ultimo mese interamente pagato
             };
-            
-            alertMessage = `Pagamento di ${finalMonthsPaid} mese/i registrato. Nuova scadenza: ${moment(nuovaScadenza).format('DD/MM/YYYY')}`;
-            
+
+            alertMessage = `Pagamento di ${mesiPagati} mese/i registrato. Nuova scadenza: ${nuovaScadenzaDate.format('DD/MM/YYYY')}`;
         } else {
              alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza.`;
         }
     } else if (tipo === 'Iscrizione / Annuale') {
-        // La logica Annuale avanza di un anno e fissa a fine mese.
-        const vecchiaScadenza = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : moment(oggi);
-        const nuovaScadenzaDate = vecchiaScadenza.clone().add(1, 'year').endOf('month'); 
-        const nuovaScadenza = nuovaScadenzaDate.format('YYYY-MM-DD');
-
-        datiDaAggiornare.abbonamento = { 
-            ...iscritto.abbonamento, 
-            scadenza: nuovaScadenza,
-            mesePagato: nuovaScadenzaDate.month(), 
-        };
-        datiDaAggiornare.quotaIscrizione = (iscritto.quotaIscrizione || 0) + cifra;
-        alertMessage = `Pagamento annuale registrato. Nuova scadenza: ${moment(nuovaScadenza).format('DD/MM/YYYY')}`;
+        const quotaIscrizionePrecedente = iscritto.quotaIscrizione ? parseFloat(iscritto.quotaIscrizione) : 0;
+        datiDaAggiornare.quotaIscrizione = quotaIscrizionePrecedente + cifra;
+        alertMessage = `Pagamento di Iscrizione/Annuale registrato per ${cifra}€. Totale versato: ${datiDaAggiornare.quotaIscrizione}€`;
     }
-    
-    nuovoPagamento.dataPagamento = moment(oggi).format('YYYY-MM-DD'); 
 
     try {
         await addDoc(collection(db, "pagamenti"), nuovoPagamento);
@@ -202,11 +189,13 @@ function SchedaSocioPage({ onDataUpdate }) {
         setPagamentoDialogOpen(false);
         fetchIscritto();
         if (onDataUpdate) onDataUpdate();
-    } catch(e) { 
-      console.error("Errore: ", e);
-      showNotification("Errore durante la registrazione del pagamento.", 'error'); 
+    } catch(e) {
+      console.error("Errore durante la registrazione del pagamento: ", e);
+      showNotification("Errore durante la registrazione del pagamento.", 'error');
     }
   };
+  // <-- FINE LOGICA PAGAMENTO CON NUOVE REGOLE -->
+
 
   const handleEliminaIscritto = async () => {
     if (!window.confirm("ATTENZIONE: Stai per eliminare definitivamente questo iscritto e tutti i suoi dati. L'azione è irreversibile. Continuare?")) return;
@@ -220,16 +209,14 @@ function SchedaSocioPage({ onDataUpdate }) {
     }
   };
 
-
   const handleStampaRicevuta = () => {
     generateReceipt(iscritto, pagamenti, logoImage, firmaImage);
   };
-  
+
   const handleTabChange = (event, newValue) => { setTabValue(newValue); };
-  
-  // Utilizzo di moment per garantire il formato DD/MM/YYYY
-  const formatDate = (dateString) => { 
-    if (!dateString) return 'N/D'; 
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/D';
     return moment(dateString).format('DD/MM/YYYY');
   };
 
@@ -245,11 +232,11 @@ function SchedaSocioPage({ onDataUpdate }) {
 
   return (
     <>
-      <Button 
-        component={RouterLink} 
-        to="/iscritti" 
-        startIcon={<ArrowBackIcon />} 
-        sx={{ mb: 2, color: backButtonColor }} 
+      <Button
+        component={RouterLink}
+        to="/iscritti"
+        startIcon={<ArrowBackIcon />}
+        sx={{ mb: 2, color: backButtonColor }}
       >
         Torna alla Lista Iscritti
       </Button>
@@ -262,35 +249,35 @@ function SchedaSocioPage({ onDataUpdate }) {
             <Typography color="text.secondary">{iscritto.codiceFiscale}</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button 
-              variant="contained" 
-              color="info" 
-              startIcon={<PrintIcon />} 
+            <Button
+              variant="contained"
+              color="info"
+              startIcon={<PrintIcon />}
               onClick={handleStampaRicevuta}
             >
               Stampa Ricevuta
             </Button>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<EditIcon />} 
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<EditIcon />}
               onClick={() => setEditDialogOpen(true)}
-              sx={{ color: 'white' }} 
+              sx={{ color: 'white' }}
             >
               Modifica Dati
             </Button>
-            <Button 
-              variant="contained" 
-              color="warning" 
-              startIcon={<ArchiveIcon />} 
+            <Button
+              variant="contained"
+              color="warning"
+              startIcon={<ArchiveIcon />}
               onClick={handleArchiviaIscritto}
             >
               Archivia
             </Button>
-            <Button 
-              variant="contained" 
-              color="error" 
-              startIcon={<DeleteForeverIcon />} 
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<DeleteForeverIcon />}
               onClick={handleEliminaIscritto}
             >
               Elimina
@@ -314,8 +301,7 @@ function SchedaSocioPage({ onDataUpdate }) {
             <Grid item xs={12} sm={6}><Typography><strong>Sede:</strong> {iscritto.sede || 'N/D'}</Typography></Grid>
           </Grid>
           <Divider sx={{ my: 2 }} />
-          
-          {/* STATO ABBONAMENTO CON MESE DI RIFERIMENTO */}
+
           <Typography variant="h6" gutterBottom>Stato Abbonamento</Typography>
           <Grid container spacing={1} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={6}>
@@ -330,30 +316,29 @@ function SchedaSocioPage({ onDataUpdate }) {
             </Grid>
           </Grid>
           <Divider sx={{ my: 2 }} />
-          
+
           <Typography variant="h6" gutterBottom>Dati Familiari</Typography>
           <Grid container spacing={1}>
             <Grid item xs={12} sm={6}><Typography><strong>Genitore:</strong> {iscritto.nomeGenitore || 'N/D'}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography><strong>CF Genitore:</strong> {iscritto.cfGenitore || 'N/D'}</Typography></Grid>
           </Grid>
-          
-          {/* NOTE SEGRETERIA */}
-          <Divider sx={{ my: 2 }} /> 
+
+          <Divider sx={{ my: 2 }} />
           <Typography variant="h6" gutterBottom>Note Segreteria</Typography>
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 2, 
-              backgroundColor: theme.palette.mode === 'light' ? theme.palette.grey[50] : theme.palette.background.default 
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              backgroundColor: theme.palette.mode === 'light' ? theme.palette.grey[50] : theme.palette.background.default
             }}
           >
              <Typography sx={{ whiteSpace: 'pre-wrap' }}>
                 {iscritto.annotazioni || 'Nessuna nota.'}
              </Typography>
           </Paper>
-          
+
         </TabPanel>
-        
+
         <TabPanel value={tabValue} index={1}>
           <Typography variant="h6" gutterBottom>Indirizzo e Contatti</Typography>
           <Grid container spacing={1}>

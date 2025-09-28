@@ -23,7 +23,8 @@ import SaveIcon from "@mui/icons-material/Save";
 
 // Nuove costanti per Livelli e Categorie (per ginnastica artistica)
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
-const CATEGORIE = ["Microbaby", "Allieva", "Junior", "Senior"];
+// MODIFICA: Corretto "Microbaby" in "Baby" per coerenza con gli altri file.
+const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
 
 // Il componente ora riceve i props per la gestione del Dialog
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {

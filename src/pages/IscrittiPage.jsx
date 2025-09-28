@@ -1,6 +1,5 @@
-// File: src/pages/IscrittiPage.jsx
-
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -10,41 +9,69 @@ import {
   TextField,
   InputAdornment,
   useTheme,
+  Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
-import IscrittoForm from "../components/IscrittoForm.jsx"; // Il nuovo Dialog
+import IscrittoForm from "../components/IscrittoForm.jsx";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
 import { exportToExcel } from "../utils/exportToExcel.js";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import moment from "moment";
+import { addIscritto } from "../services/firebaseService.js"; // <-- Importa il servizio corretto
 
-// Constants per il calcolo della posizione (drawerWidth da Layout.jsx)
 const DRAWER_WIDTH = 280;
 
-function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
-  const [isFormOpen, setIsFormOpen] = useState(false); // Ora gestisce l'apertura del Dialog
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
+function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded }) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
 
-  const showNotification = useNotification();
+  const { showNotification } = useNotification();
   const theme = useTheme();
+  const query = useQuery();
+  const navigate = useNavigate();
 
-  const handleToggleForm = () => {
-    setIsFormOpen(!isFormOpen);
-  };
+  const gruppoIdFromUrl = query.get("gruppoId");
 
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-  };
+  // CORREZIONE: Semplificato useEffect per evitare loop e conflitti.
+  // Si attiva solo quando cambia l'ID del gruppo nell'URL.
+  useEffect(() => {
+    if (gruppoIdFromUrl) {
+      setActiveFilter(`gruppo_${gruppoIdFromUrl}`);
+    } else {
+      // Se l'URL non ha più il gruppoId, torna a "tutti"
+      if (activeFilter.startsWith("gruppo_")) {
+        setActiveFilter("tutti");
+      }
+    }
+  }, [gruppoIdFromUrl]);
 
-  // onIscrittoAdded viene chiamato dal form dopo il salvataggio
-  const handleIscrittoAdded = (nuovoIscrittoConId) => {
-    // La chiusura del Dialog è gestita da IscrittoForm.jsx
-    onIscrittoAdded(nuovoIscrittoConId);
+  const activeGruppoFilter = useMemo(() => {
+    if (!activeFilter.startsWith("gruppo_")) return null;
+    const gruppoId = activeFilter.split("_")[1];
+    return gruppiList.find(g => g.id === gruppoId);
+  }, [activeFilter, gruppiList]);
+
+  const handleToggleForm = () => setIsFormOpen(!isFormOpen);
+  const handleCloseForm = () => setIsFormOpen(false);
+
+  const handleSaveIscritto = async (nuovoIscritto) => {
+    try {
+      const nuovoIscrittoConId = await addIscritto(nuovoIscritto);
+      onIscrittoAdded(nuovoIscrittoConId);
+      showNotification("Socio aggiunto con successo!", "success");
+      handleCloseForm();
+    } catch (error) {
+      console.error("Errore durante l'aggiunta del socio:", error);
+      showNotification("Errore durante il salvataggio del socio.", "error");
+    }
   };
 
   const handleSelectIscritto = (id) => {
@@ -73,55 +100,80 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
 
   const today = moment();
   const filteredIscritti = useMemo(() => {
-    let filtered = iscrittiList;
+    let baseList = iscrittiList;
 
+    // CORREZIONE: La logica di filtro del gruppo ora è la prima a essere applicata
+    if (activeFilter.startsWith("gruppo_")) {
+      const gruppoId = activeFilter.split("_")[1];
+      const gruppo = gruppiList.find(g => g.id === gruppoId);
+      if (gruppo && gruppo.membri) {
+        const membriIds = new Set(gruppo.membri);
+        baseList = baseList.filter(iscritto => membriIds.has(iscritto.id));
+      } else {
+        return []; // Se il gruppo non è ancora caricato o non ha membri, non mostrare nulla
+      }
+    } else {
+        // Applica i filtri normali solo se non c'è un filtro di gruppo
+        switch (activeFilter) {
+          case "abbonamenti_scaduti":
+            baseList = baseList.filter((i) => {
+              if (!i.abbonamento?.scadenza) return false;
+              return moment(i.abbonamento.scadenza).isBefore(today, "day");
+            });
+            break;
+          case "abbonamenti_in_scadenza":
+            baseList = baseList.filter((i) => {
+              if (!i.abbonamento?.scadenza) return false;
+              const scadenza = moment(i.abbonamento.scadenza);
+              return (
+                scadenza.isSameOrAfter(today, "day") &&
+                scadenza.diff(today, "days") <= 30
+              );
+            });
+            break;
+          case "certificati_scaduti":
+            baseList = baseList.filter((i) => {
+              if (!i.certificatoMedico?.scadenza) return false;
+              return moment(i.certificatoMedico.scadenza).isBefore(today, "day");
+            });
+            break;
+          case "certificati_mancanti":
+            baseList = baseList.filter((i) => i.certificatoMedico?.presente === false);
+            break;
+          case "certificati_in_scadenza":
+            baseList = baseList.filter((i) => {
+              if (!i.certificatoMedico?.scadenza) return false;
+              const scadenza = moment(i.certificatoMedico.scadenza);
+              return (
+                scadenza.isSameOrAfter(today, "day") &&
+                scadenza.diff(today, "days") <= 30
+              );
+            });
+            break;
+          default:
+            // Nessun filtro, usa la lista base
+            break;
+        }
+    }
+
+    // Il filtro di ricerca testuale viene applicato DOPO tutti gli altri filtri
     if (searchTerm) {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(
+      return baseList.filter(
         (i) =>
           i.nome.toLowerCase().includes(lowercasedSearchTerm) ||
           i.cognome.toLowerCase().includes(lowercasedSearchTerm)
       );
     }
 
-    switch (activeFilter) {
-      case "abbonamenti_scaduti":
-        return filtered.filter((i) => {
-          if (!i.abbonamento?.scadenza) return false;
-          return moment(i.abbonamento.scadenza).isBefore(today, "day");
-        });
-      case "abbonamenti_in_scadenza":
-        return filtered.filter((i) => {
-          if (!i.abbonamento?.scadenza) return false;
-          const scadenza = moment(i.abbonamento.scadenza);
-          return (
-            scadenza.isSameOrAfter(today, "day") &&
-            scadenza.diff(today, "days") <= 30
-          );
-        });
-      case "certificati_scaduti":
-        return filtered.filter((i) => {
-          if (!i.certificatoMedico?.scadenza) return false;
-          return moment(i.certificatoMedico.scadenza).isBefore(today, "day");
-        });
-      case "certificati_mancanti":
-        return filtered.filter((i) => i.certificatoMedico?.presente === false);
-      case "certificati_in_scadenza":
-        return filtered.filter((i) => {
-          if (!i.certificatoMedico?.scadenza) return false;
-          const scadenza = moment(i.certificatoMedico.scadenza);
-          return (
-            scadenza.isSameOrAfter(today, "day") &&
-            scadenza.diff(today, "days") <= 30
-          );
-        });
-      default:
-        return filtered;
-    }
-  }, [iscrittiList, activeFilter, searchTerm, today]);
+    return baseList;
+  }, [iscrittiList, gruppiList, activeFilter, searchTerm, today]);
 
-  // Condizione per mostrare la barra fissa
   const isSelected = selectedIds.length > 0;
+  
+  const clearGruppoFilter = () => {
+      navigate('/iscritti');
+  }
 
   return (
     <Box>
@@ -147,14 +199,11 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         </Button>
       </Box>
 
-      {/* Form di Aggiunta Socio come Dialog Modale */}
       <IscrittoForm
         open={isFormOpen}
         onClose={handleCloseForm}
-        onIscrittoAggiunto={onIscrittoAdded}
+        onIscrittoAggiunto={handleSaveIscritto}
       />
-
-      {/* Rimosso il Box che causava il reflow in cima */}
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
         <Box sx={{ mb: 3 }}>
@@ -177,74 +226,56 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         </Box>
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Filtri Rapidi
+            Filtri
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Chip
-              label="Tutti"
-              onClick={() => setActiveFilter("tutti")}
-              color={activeFilter === "tutti" ? "primary" : "default"}
-              variant={activeFilter === "tutti" ? "filled" : "outlined"}
-            />
-            <Chip
-              label="Abbonamenti Scaduti"
-              onClick={() => setActiveFilter("abbonamenti_scaduti")}
-              color={
-                activeFilter === "abbonamenti_scaduti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"
-              }
-            />
-            <Chip
-              label="Abbonamenti in scadenza"
-              onClick={() => setActiveFilter("abbonamenti_in_scadenza")}
-              color={
-                activeFilter === "abbonamenti_in_scadenza"
-                  ? "warning"
-                  : "default"
-              }
-              variant={
-                activeFilter === "abbonamenti_in_scadenza"
-                  ? "filled"
-                  : "outlined"
-              }
-            />
-            <Chip
-              label="Certificati Scaduti"
-              onClick={() => setActiveFilter("certificati_scaduti")}
-              color={
-                activeFilter === "certificati_scaduti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "certificati_scaduti" ? "filled" : "outlined"
-              }
-            />
-            <Chip
-              label="Certificati Mancanti"
-              onClick={() => setActiveFilter("certificati_mancanti")}
-              color={
-                activeFilter === "certificati_mancanti" ? "error" : "default"
-              }
-              variant={
-                activeFilter === "certificati_mancanti" ? "filled" : "outlined"
-              }
-            />
-            <Chip
-              label="Certificati in scadenza"
-              onClick={() => setActiveFilter("certificati_in_scadenza")}
-              color={
-                activeFilter === "certificati_in_scadenza"
-                  ? "warning"
-                  : "default"
-              }
-              variant={
-                activeFilter === "certificati_in_scadenza"
-                  ? "filled"
-                  : "outlined"
-              }
-            />
-          </Box>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            {activeGruppoFilter ? (
+              <Chip
+                label={`Gruppo: ${activeGruppoFilter.nome}`}
+                color="secondary"
+                onDelete={clearGruppoFilter}
+              />
+            ) : (
+              <>
+                <Chip
+                  label="Tutti"
+                  onClick={() => setActiveFilter("tutti")}
+                  color={activeFilter === "tutti" ? "primary" : "default"}
+                  variant={activeFilter === "tutti" ? "filled" : "outlined"}
+                />
+                <Chip
+                  label="Abbonamenti Scaduti"
+                  onClick={() => setActiveFilter("abbonamenti_scaduti")}
+                  color={activeFilter === "abbonamenti_scaduti" ? "error" : "default"}
+                  variant={activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"}
+                />
+                <Chip
+                  label="Abbonamenti in scadenza"
+                  onClick={() => setActiveFilter("abbonamenti_in_scadenza")}
+                  color={activeFilter === "abbonamenti_in_scadenza" ? "warning" : "default"}
+                  variant={activeFilter === "abbonamenti_in_scadenza" ? "filled" : "outlined"}
+                />
+                <Chip
+                  label="Certificati Scaduti"
+                  onClick={() => setActiveFilter("certificati_scaduti")}
+                  color={activeFilter === "certificati_scaduti" ? "error" : "default"}
+                  variant={activeFilter === "certificati_scaduti" ? "filled" : "outlined"}
+                />
+                <Chip
+                  label="Certificati Mancanti"
+                  onClick={() => setActiveFilter("certificati_mancanti")}
+                  color={activeFilter === "certificati_mancanti" ? "error" : "default"}
+                  variant={activeFilter === "certificati_mancanti" ? "filled" : "outlined"}
+                />
+                <Chip
+                  label="Certificati in scadenza"
+                  onClick={() => setActiveFilter("certificati_in_scadenza")}
+                  color={activeFilter === "certificati_in_scadenza" ? "warning" : "default"}
+                  variant={activeFilter === "certificati_in_scadenza" ? "filled" : "outlined"}
+                />
+              </>
+            )}
+          </Stack>
         </Box>
         <IscrittiLista
           iscritti={filteredIscritti}
@@ -255,22 +286,21 @@ function IscrittiPage({ iscrittiList, onDataUpdate, onIscrittoAdded }) {
         />
       </Paper>
 
-      {/* BARRA FIXED IN OVERLAY IN BASSO (Floating) */}
       <Box
         sx={{
           position: "fixed",
-          bottom: 24, // Distaccato dal basso (24px)
-          left: DRAWER_WIDTH + 24, // Distaccato dalla sidebar (24px di margine)
-          right: 24, // Distaccato dal lato destro (24px)
+          bottom: 24,
+          left: DRAWER_WIDTH + 24,
+          right: 24,
           zIndex: 1100,
-          display: isSelected ? "block" : "none", // Nasconde quando non selezionato
+          display: isSelected ? "block" : "none",
         }}
       >
         <Paper
-          elevation={6} // Aggiunge ombra per farlo "fluttuare"
+          elevation={6}
           sx={{
             padding: 2,
-            borderRadius: theme.shape.borderRadius * 2, // Arrotondamento marcato (16px)
+            borderRadius: theme.shape.borderRadius * 2,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",

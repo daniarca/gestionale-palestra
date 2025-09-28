@@ -13,22 +13,20 @@ const giorniSettimana = [
   { label: "Sabato", value: 6 },
 ];
 // Orari non utilizzati in questa pagina, ma mantenuti per consistenza se necessario
-const orari = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`); 
+const orari = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`);
 
 function OrarioPage() {
   const [gruppi, setGruppi] = useState([]);
-  // Rimosso: [focusedGroupId, setFocusedGroupId]
   const theme = useTheme();
 
-  // La colorPalette non è più strettamente necessaria ma manteniamo i colori semantici per sede
   const colorPalette = useMemo(
     () => ({
       frascati: theme.palette.primary.main,
-      roccaPriora: theme.palette.secondary.main, // Usiamo secondary per il contrasto
+      roccaPriora: theme.palette.secondary.main,
     }),
     [theme]
   );
-  
+
   useEffect(() => {
     const fetchGruppi = async () => {
       const q = query(collection(db, "gruppi"));
@@ -39,26 +37,20 @@ function OrarioPage() {
     };
     fetchGruppi();
   }, []);
-  
-  // Rimosso: handleFocus
 
   const eventiPerGiorno = useMemo(() => {
     const eventi = {};
     giorniSettimana.forEach((g) => (eventi[g.value] = []));
     gruppi.forEach((g) => {
-      // FIX: Controllo per assicurare che la chiave esista nell'oggetto eventi
       if (g.giornoSettimana != null && g.oraInizio && eventi[g.giornoSettimana]) {
           eventi[g.giornoSettimana].push(g);
       }
     });
     for (const giorno in eventi) {
-      // Ordina gli eventi per ora di inizio (necessario per l'elenco sequenziale)
       eventi[giorno].sort((a, b) => (a.oraInizio > b.oraInizio ? 1 : -1));
     }
     return eventi;
   }, [gruppi]);
-  
-  // Rimosso: eventBlocksPerDay
 
   return (
     <Box>
@@ -78,7 +70,6 @@ function OrarioPage() {
           sx={{
             display: "flex",
             flexDirection: "row",
-            // Ristabilito layout Grid per un layout più pulito e coerente con la tua architettura
             minWidth: `${giorniSettimana.length * 250}px`,
           }}
         >
@@ -100,7 +91,6 @@ function OrarioPage() {
                 {giorno.label}
               </Typography>
               
-              {/* Contenitore per gli Eventi: Ritorno all'incolonnamento standard */}
               <Box
                 sx={{
                   display: "flex",
@@ -117,16 +107,19 @@ function OrarioPage() {
                       <Paper
                           key={gruppo.id}
                           component={RouterLink}
-                          to={`/iscritti?gruppoId=${gruppo.id}`}
+                          to={`/iscritti?gruppoId=${gruppo.id}`} // <-- MODIFICA CHIAVE
                           elevation={3}
                           sx={{
                               p: 2,
                               borderRadius: 2,
                               backgroundColor: backgroundColor,
-                              color: '#FFFFFF', // FIX: Testo sempre Bianco
+                              color: '#FFFFFF',
                               textDecoration: "none",
                               transition: "transform 0.2s",
-                              "&:hover": { transform: "scale(1.03)" },
+                              "&:hover": { 
+                                  transform: "scale(1.03)",
+                                  cursor: 'pointer' 
+                              },
                           }}
                       >
                           <Typography sx={{ fontWeight: "bold", overflowWrap: "break-word" }}>

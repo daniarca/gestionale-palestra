@@ -141,6 +141,7 @@ function MainApp() {
           element={
             <IscrittiPage
               iscrittiList={iscritti}
+              gruppiList={gruppi} // <-- MODIFICA CHIAVE
               onDataUpdate={handleDataUpdate}
               onIscrittoAdded={handleIscrittoAggiunto}
             />
@@ -163,7 +164,7 @@ function MainApp() {
           path="/report"
           element={<ReportPage pagamentiList={pagamenti} />}
         />
-        <Route path="/orario" element={<OrarioPage gruppiList={gruppi} />} />
+        <Route path="/orario" element={<OrarioPage />} />
         <Route path="/documentazione" element={<DocumentazionePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
