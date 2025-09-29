@@ -1,5 +1,3 @@
-// File: src/pages/ReportPage.jsx
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from '../firebase.js';
@@ -29,13 +27,12 @@ const generaAnniSportivi = () => {
 function ReportPage() {
   const [pagamenti, setPagamenti] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(""); // NUOVO STATO: Ricerca
+  const [searchTerm, setSearchTerm] = useState("");
   const theme = useTheme();
 
   const anniDisponibili = useMemo(() => generaAnniSportivi(), []);
-  const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[1]); // Anno sportivo corrente
+  const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[1]);
   
-  // Colori tematici coerenti per i grafici (più di 4 per la torta)
   const chartColors = [
       theme.palette.primary.main, 
       theme.palette.info.main, 
@@ -62,18 +59,15 @@ function ReportPage() {
     const [startYearStr, endYearStr] = annoSelezionato.split('/');
     const startYear = parseInt(startYearStr);
     
-    // Definisce l'intervallo dell'anno sportivo selezionato (Settembre AAAA a Giugno AAAA+1)
     const inizioAnnoSportivo = moment().year(startYear).month(8).date(1).startOf('day'); 
     const fineAnnoSportivo = moment().year(parseInt(endYearStr)).month(5).date(30).endOf('day'); 
 
-    // Filtra i pagamenti nell'Anno Sportivo Selezionato
     const pagamentiAnnoSportivo = pagamenti.filter(p => {
         if (!p.dataPagamento) return false;
         const dataPagamento = moment(p.dataPagamento);
         return dataPagamento.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]');
     });
 
-    // 1. Incasso Mensile per Grafico a Barre
     const incassoPerMese = Array(12).fill(0);
     pagamentiAnnoSportivo.forEach(p => {
       const mese = moment(p.dataPagamento).month();
@@ -82,12 +76,9 @@ function ReportPage() {
 
     let datiGraficoBarre = MESI.map((mese, index) => ({ name: mese, Incasso: incassoPerMese[index] }));
     
-    // Ordina da Settembre a Agosto per visualizzare l'Anno Sportivo
     const order = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7]; 
     datiGraficoBarre = order.map(i => datiGraficoBarre[i]);
 
-
-    // 2. Grafico a Torta per Tipo di Pagamento (MIGLIORIA)
     const incassoPerTipo = pagamentiAnnoSportivo.reduce((acc, p) => {
       const tipo = p.tipo || 'Altro';
       acc[tipo] = (acc[tipo] || 0) + p.cifra;
@@ -95,13 +86,10 @@ function ReportPage() {
     }, {});
     const datiGraficoTorta = Object.keys(incassoPerTipo).map(key => ({ name: key, value: incassoPerTipo[key] }));
 
-
-    // 3. Metriche Totali
     const incassoTotaleStorico = pagamenti.reduce((sum, p) => sum + p.cifra, 0);
     const incassoAnnoSelezionato = pagamentiAnnoSportivo.reduce((sum, p) => sum + p.cifra, 0);
     const numTransazioniAnno = pagamentiAnnoSportivo.length;
     
-    // 4. Filtro per Search Bar (Transazioni Utente)
     const lowerSearchTerm = searchTerm.toLowerCase();
     const transazioniFiltrateUtente = pagamentiAnnoSportivo
         .filter(p => p.iscrittoNome.toLowerCase().includes(lowerSearchTerm));
@@ -112,7 +100,6 @@ function ReportPage() {
         numTransazioniAnno,
         datiGraficoBarre, 
         datiGraficoTorta,
-        pagamentiAnnoSportivo,
         transazioniFiltrateUtente,
     };
   }, [pagamenti, annoSelezionato, searchTerm]);
@@ -125,7 +112,6 @@ function ReportPage() {
     <Box>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>Report Finanziario</Typography>
       
-      {/* SEZIONE FILTRO ANNO */}
       <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
         <Grid container alignItems="center" justifyContent="space-between">
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Analisi Anno Sportivo:</Typography>
@@ -140,8 +126,6 @@ function ReportPage() {
         </Grid>
       </Paper>
       
-
-      {/* STATISTICHE RIEPILOGO */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={4}>
           <StatCard 
@@ -169,7 +153,6 @@ function ReportPage() {
         </Grid>
       </Grid>
 
-      {/* GRAFICI */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3, borderRadius: 4, height: 400 }}> 
@@ -203,7 +186,6 @@ function ReportPage() {
         </Grid>
       </Grid>
 
-      {/* SEARCH BAR E TABELLA TRANSAZIONI UTENTE */}
       <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mt: 4 }}>Storico Transazioni {searchTerm ? `per "${searchTerm}"` : `Anno ${annoSelezionato}`}</Typography>
       
       <Box sx={{ mb: 3 }}>
