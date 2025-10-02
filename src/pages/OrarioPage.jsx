@@ -1,8 +1,10 @@
+// File: src/pages/OrarioPage.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { Link as RouterLink } from "react-router-dom";
-import { Typography, Box, Paper, useTheme, Grid } from "@mui/material";
+import { Typography, Box, Paper, useTheme } from "@mui/material";
 
 const giorniSettimana = [
   { label: "Lunedì", value: 1 },
@@ -12,8 +14,6 @@ const giorniSettimana = [
   { label: "Venerdì", value: 5 },
   { label: "Sabato", value: 6 },
 ];
-// Orari non utilizzati in questa pagina, ma mantenuti per consistenza se necessario
-const orari = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`);
 
 function OrarioPage() {
   const [gruppi, setGruppi] = useState([]);
@@ -42,8 +42,12 @@ function OrarioPage() {
     const eventi = {};
     giorniSettimana.forEach((g) => (eventi[g.value] = []));
     gruppi.forEach((g) => {
-      if (g.giornoSettimana != null && g.oraInizio && eventi[g.giornoSettimana]) {
-          eventi[g.giornoSettimana].push(g);
+      if (
+        g.giornoSettimana != null &&
+        g.oraInizio &&
+        eventi[g.giornoSettimana]
+      ) {
+        eventi[g.giornoSettimana].push(g);
       }
     });
     for (const giorno in eventi) {
@@ -58,87 +62,99 @@ function OrarioPage() {
         Orario Settimanale
       </Typography>
 
-      <Paper
+      {/* Container principale che usa CSS Grid per un layout flessibile e responsivo */}
+      <Box
         sx={{
-          p: 2,
-          borderRadius: 4,
-          backgroundColor: "background.default",
-          overflowX: "auto",
+          display: "grid",
+          // Questa riga è la chiave:
+          // 'auto-fit' cerca di inserire più colonne possibili.
+          // 'minmax(250px, 1fr)' dice a ogni colonna:
+          // - Sii larga ALMENO 250px.
+          // - Se c'è più spazio, espanditi per riempirlo (1fr).
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gap: 2, // Spazio tra le colonne
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            minWidth: `${giorniSettimana.length * 250}px`,
-          }}
-        >
-          {giorniSettimana.map((giorno) => (
+        {giorniSettimana.map((giorno) => (
+          <Paper
+            key={giorno.value}
+            sx={{
+              p: 2,
+              borderRadius: 4,
+              backgroundColor: "background.default",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Typography
+              variant="h6"
+              align="center"
+              sx={{ mb: 2, fontWeight: "bold" }}
+            >
+              {giorno.label}
+            </Typography>
+
             <Box
-              key={giorno.value}
               sx={{
-                flexGrow: 1,
-                flexShrink: 0,
-                minWidth: "250px",
-                padding: theme.spacing(1),
-                borderRight: `1px solid ${theme.palette.divider}`,
-                "&:last-of-type": {
-                  borderRight: "none",
-                },
+                display: "flex",
+                flexDirection: "column",
+                gap: theme.spacing(1.5),
               }}
             >
-              <Typography variant="h6" align="center" sx={{ mb: 2 }}>
-                {giorno.label}
-              </Typography>
-              
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: theme.spacing(1),
-                }}
-              >
-                {eventiPerGiorno[giorno.value].map((gruppo) => {
-                  
-                  const sedeKey = gruppo.sede === 'Frascati' ? 'frascati' : 'roccaPriora';
-                  const backgroundColor = colorPalette[sedeKey] || theme.palette.primary.main;
+              {eventiPerGiorno[giorno.value].map((gruppo) => {
+                const sedeKey =
+                  gruppo.sede === "Frascati" ? "frascati" : "roccaPriora";
+                const backgroundColor =
+                  colorPalette[sedeKey] || theme.palette.primary.main;
 
-                  return (
-                      <Paper
-                          key={gruppo.id}
-                          component={RouterLink}
-                          to={`/iscritti?gruppoId=${gruppo.id}`} // <-- MODIFICA CHIAVE
-                          elevation={3}
-                          sx={{
-                              p: 2,
-                              borderRadius: 2,
-                              backgroundColor: backgroundColor,
-                              color: '#FFFFFF',
-                              textDecoration: "none",
-                              transition: "transform 0.2s",
-                              "&:hover": { 
-                                  transform: "scale(1.03)",
-                                  cursor: 'pointer' 
-                              },
-                          }}
-                      >
-                          <Typography sx={{ fontWeight: "bold", overflowWrap: "break-word" }}>
-                              {gruppo.nome}
-                          </Typography>
-                          <Typography variant="body2">
-                              {gruppo.oraInizio} - {gruppo.oraFine}
-                          </Typography>
-                          <Typography variant="caption">
-                              {gruppo.staffNome}
-                          </Typography>
-                      </Paper>
-                  );
-                })}
-              </Box>
+                return (
+                  <Paper
+                    key={gruppo.id}
+                    component={RouterLink}
+                    to={`/iscritti?gruppoId=${gruppo.id}`}
+                    elevation={3}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: backgroundColor,
+                      color: theme.palette.getContrastText(backgroundColor),
+                      textDecoration: "none",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      "&:hover": {
+                        transform: "translateY(-3px)",
+                        boxShadow: theme.shadows[6],
+                        cursor: "pointer",
+                      },
+                    }}
+                  >
+                    <Typography
+                      sx={{ fontWeight: "bold", overflowWrap: "break-word" }}
+                    >
+                      {gruppo.nome}
+                    </Typography>
+                    <Typography variant="body2">
+                      {gruppo.oraInizio} - {gruppo.oraFine}
+                    </Typography>
+                    <Typography variant="caption">
+                      {gruppo.staffNome}
+                    </Typography>
+                  </Paper>
+                );
+              })}
+              {eventiPerGiorno[giorno.value].length === 0 && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  align="center"
+                  sx={{ pt: 2 }}
+                >
+                  Nessun corso
+                </Typography>
+              )}
             </Box>
-          ))}
-        </Box>
-      </Paper>
+          </Paper>
+        ))}
+      </Box>
     </Box>
   );
 }

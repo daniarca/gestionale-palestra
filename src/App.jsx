@@ -11,16 +11,18 @@ import IscrittiPage from "./pages/IscrittiPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ReportPage from "./pages/ReportPage.jsx";
 import GruppiPage from "./pages/GruppiPage.jsx";
-import StaffPage from "./pages/StaffPage.jsx";
+import TecniciPage from "./pages/TecniciPage.jsx"; // <-- RINOMINATO
 import OrarioPage from "./pages/OrarioPage.jsx";
 import AgendaPage from "./pages/AgendaPage.jsx";
 import ArchivioPage from "./pages/ArchivioPage.jsx";
 import SchedaSocioPage from "./pages/SchedaSocioPage.jsx";
+import SchedaTecnicoPage from "./pages/SchedaTecnicoPage.jsx"; // <-- NUOVA PAGINA
 import Notifier from "./components/Notifier.jsx";
 import DocumentazionePage from "./pages/DocumentazionePage.jsx";
 import "./App.css";
 
 function MainApp() {
+  // ... il resto del componente non cambia
   const [iscritti, setIscritti] = useState([]);
   const [gruppi, setGruppi] = useState([]);
   const [pagamenti, setPagamenti] = useState([]);
@@ -38,14 +40,12 @@ function MainApp() {
       const pagamentiQuery = query(collection(db, "pagamenti"));
       const staffQuery = query(collection(db, "staff"));
 
-      // LA CORREZIONE È QUI:
-      // Stavi passando `getDocs(staffSnap)` invece di `getDocs(staffQuery)`
       const [iscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
         await Promise.all([
           getDocs(iscrittiQuery),
           getDocs(gruppiQuery),
           getDocs(pagamentiQuery),
-          getDocs(staffQuery), // Corretto
+          getDocs(staffQuery),
         ]);
 
       setIscritti(
@@ -62,23 +62,19 @@ function MainApp() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchData();
   }, []);
-
   const handleDataUpdate = () => {
     fetchData();
   };
-
   const handleIscrittoAggiunto = (nuovoIscrittoConId) => {
-    setIscritti((prevIscritti) =>
-      [...prevIscritti, nuovoIscrittoConId].sort((a, b) =>
+    setIscritti((prev) =>
+      [...prev, nuovoIscrittoConId].sort((a, b) =>
         a.cognome.localeCompare(b.cognome)
       )
     );
   };
-
   const notifications = useMemo(() => {
     if (!iscritti) return [];
     const alerts = [];
@@ -97,9 +93,6 @@ function MainApp() {
     const certificatiMancanti = iscritti.filter(
       (i) => !i.certificatoMedico?.presente || !i.certificatoMedico?.scadenza
     );
-    const pagamentiInSospeso = iscritti.filter(
-      (i) => i.statoPagamento === "In Sospeso"
-    );
     if (abbonamentiScaduti.length > 0)
       alerts.push({
         type: "abbonamenti_scaduti",
@@ -117,12 +110,6 @@ function MainApp() {
         type: "certificati_mancanti",
         count: certificatiMancanti.length,
         message: `${certificatiMancanti.length} Certificati Mancanti`,
-      });
-    if (pagamentiInSospeso.length > 0)
-      alerts.push({
-        type: "pagamenti_sospeso",
-        count: pagamentiInSospeso.length,
-        message: `${pagamentiInSospeso.length} Pagamenti in Sospeso`,
       });
     return alerts;
   }, [iscritti]);
@@ -160,7 +147,11 @@ function MainApp() {
           path="/archivio"
           element={<ArchivioPage onDataUpdate={handleDataUpdate} />}
         />
-        <Route path="/staff" element={<StaffPage staffList={staff} />} />
+
+        {/* ROTTE AGGIORNATE E NUOVE */}
+        <Route path="/tecnici" element={<TecniciPage />} />
+        <Route path="/tecnici/:tecnicoId" element={<SchedaTecnicoPage />} />
+
         <Route
           path="/gruppi"
           element={<GruppiPage iscrittiList={iscritti} />}

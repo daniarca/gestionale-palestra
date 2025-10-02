@@ -3,7 +3,8 @@
 import { createTheme } from "@mui/material/styles";
 
 // --- Funzione per Applicare Regole di Contrasto Comuni (RIUTILIZZATE) ---
-const getBaseComponents = (mode) => ({
+const getBaseComponents = (mode, theme) => ({
+  // Passiamo il tema per accedere ai colori di sfondo
   MuiButton: {
     styleOverrides: {
       root: {
@@ -12,27 +13,21 @@ const getBaseComponents = (mode) => ({
         "& a": { color: "inherit" },
         "& a:hover": { color: "inherit" },
       },
-
-      // Pulsanti Contenuti (Viola/Rosso/Giallo/Verde) - Testo Bianco o Scuro
-      containedPrimary: { color: "#ECEFF4" }, // FIX: Testo bianco su viola
+      containedPrimary: { color: "#ECEFF4" },
       containedError: { color: mode === "light" ? "#FFFFFF" : "#ECEFF4" },
       containedWarning: { color: mode === "light" ? "#1E1E2E" : "#ECEFF4" },
       containedSuccess: { color: mode === "light" ? "#1E1E2E" : "#ECEFF4" },
-
-      // Pulsanti Text (Azioni Rapide) - Testo Primary (Viola) sempre
       text: {
-        color: mode === "light" ? "#6A5ACD" : "#ECEFF4", // Colore base
+        color: mode === "light" ? "#6A5ACD" : "#ECEFF4",
         "&:hover, &:focus, &.Mui-focusVisible": {
-          color: mode === "light" ? "#6A5ACD" : "#ECEFF4", // Colore forzato su hover/focus
+          color: mode === "light" ? "#6A5ACD" : "#ECEFF4",
           backgroundColor: "transparent",
         },
       },
-
-      // Pulsanti Outlined - Testo Primary (Viola) sempre
       outlined: {
-        color: mode === "light" ? "#6A5ACD" : "#ECEFF4", // Colore base
+        color: mode === "light" ? "#6A5ACD" : "#ECEFF4",
         "&:hover, &:focus, &.Mui-focusVisible": {
-          color: mode === "light" ? "#6A5ACD" : "#ECEFF4", // Colore forzato su hover/focus
+          color: mode === "light" ? "#6A5ACD" : "#ECEFF4",
         },
       },
     },
@@ -80,8 +75,8 @@ const getBaseComponents = (mode) => ({
         "& a:hover": { color: "inherit" },
       },
       filledError: { color: mode === "light" ? "#FFFFFF" : "#ECEFF4" },
-      filledWarning: { color: "light" ? "#1E1E2E" : "#ECEFF4" },
-      filledSuccess: { color: "light" ? "#1E1E2E" : "#ECEFF4" },
+      filledWarning: { color: mode === "light" ? "#1E1E2E" : "#ECEFF4" },
+      filledSuccess: { color: mode === "light" ? "#1E1E2E" : "#ECEFF4" },
     },
   },
   MuiTab: {
@@ -105,6 +100,21 @@ const getBaseComponents = (mode) => ({
       },
     },
   },
+  // --- INIZIO MODIFICA AGGIUNTA ---
+  MuiInputLabel: {
+    styleOverrides: {
+      root: {
+        // Quando l'etichetta è rimpicciolita, le diamo uno sfondo e un po' di padding
+        // per creare l'effetto "intagliato" nel bordo.
+        "&.Mui-focused, &.MuiFormLabel-filled, &[data-shrink='true']": {
+          backgroundColor: theme.palette.background.paper, // Usa il colore di sfondo della card/dialog
+          paddingLeft: "4px",
+          paddingRight: "4px",
+        },
+      },
+    },
+  },
+  // --- FINE MODIFICA AGGIUNTA ---
   MuiOutlinedInput: {
     styleOverrides: {
       root: {
@@ -126,11 +136,21 @@ const getBaseComponents = (mode) => ({
   },
 });
 
+// Funzione helper per creare i temi in modo pulito e applicare le modifiche
+const createAppTheme = (options) => {
+  let theme = createTheme(options);
+  // Applichiamo i componenti base DOPO, così possiamo passare `theme` per accedere ai suoi valori
+  theme = createTheme(theme, {
+    components: getBaseComponents(options.palette.mode, theme),
+  });
+  return theme;
+};
+
 // --- Theme Definitions ---
 
 export const themes = {
   // Tema 1: default (Light - Standard)
-  default: createTheme({
+  default: createAppTheme({
     palette: {
       mode: "light",
       primary: { main: "#F7567C" },
@@ -143,11 +163,10 @@ export const themes = {
     },
     typography: { fontFamily: "Poppins, sans-serif" },
     shape: { borderRadius: 12 },
-    components: getBaseComponents("light"),
   }),
 
   // Tema 2: asdgym (Dark - Revisionato per leggibilità)
-  asdgym: createTheme({
+  asdgym: createAppTheme({
     palette: {
       mode: "dark",
       primary: { main: "#E2BD86" },
@@ -172,11 +191,10 @@ export const themes = {
     shape: {
       borderRadius: 8,
     },
-    components: getBaseComponents("dark"),
   }),
 
   // Tema 3: smarthome (Ispirato a Smart Home UI)
-  smarthome: createTheme({
+  smarthome: createAppTheme({
     palette: {
       mode: "light",
       primary: { main: "#6A5ACD" }, // Viola scuro
@@ -201,11 +219,10 @@ export const themes = {
     shape: {
       borderRadius: 8,
     },
-    components: getBaseComponents("light"),
   }),
 
   // Tema 4: pastel (Ispirato a Pastel Dreams)
-  pastel: createTheme({
+  pastel: createAppTheme({
     palette: {
       mode: "light",
       primary: { main: "#FF99C8" },
@@ -230,6 +247,5 @@ export const themes = {
     shape: {
       borderRadius: 8,
     },
-    components: getBaseComponents("light"),
   }),
 };
