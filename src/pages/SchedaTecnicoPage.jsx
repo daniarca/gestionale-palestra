@@ -73,7 +73,7 @@ function SchedaTecnicoPage() {
       console.error(
         "Errore dettagliato nel caricamento dati del tecnico:",
         error
-      ); // Log più specifico
+      );
       showNotification("Errore nel caricamento dei dati.", "error");
     } finally {
       setLoading(false);
