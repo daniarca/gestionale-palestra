@@ -1,3 +1,5 @@
+// File: src/App.jsx
+
 import { useState, useEffect, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -11,6 +13,7 @@ import ReportPage from "./pages/ReportPage.jsx";
 import GruppiPage from "./pages/GruppiPage.jsx";
 import StaffPage from "./pages/StaffPage.jsx";
 import OrarioPage from "./pages/OrarioPage.jsx";
+import AgendaPage from "./pages/AgendaPage.jsx";
 import ArchivioPage from "./pages/ArchivioPage.jsx";
 import SchedaSocioPage from "./pages/SchedaSocioPage.jsx";
 import Notifier from "./components/Notifier.jsx";
@@ -35,12 +38,14 @@ function MainApp() {
       const pagamentiQuery = query(collection(db, "pagamenti"));
       const staffQuery = query(collection(db, "staff"));
 
+      // LA CORREZIONE È QUI:
+      // Stavi passando `getDocs(staffSnap)` invece di `getDocs(staffQuery)`
       const [iscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
         await Promise.all([
           getDocs(iscrittiQuery),
           getDocs(gruppiQuery),
           getDocs(pagamentiQuery),
-          getDocs(staffQuery),
+          getDocs(staffQuery), // Corretto
         ]);
 
       setIscritti(
@@ -141,7 +146,7 @@ function MainApp() {
           element={
             <IscrittiPage
               iscrittiList={iscritti}
-              gruppiList={gruppi} // <-- MODIFICA CHIAVE
+              gruppiList={gruppi}
               onDataUpdate={handleDataUpdate}
               onIscrittoAdded={handleIscrittoAggiunto}
             />
@@ -165,6 +170,7 @@ function MainApp() {
           element={<ReportPage pagamentiList={pagamenti} />}
         />
         <Route path="/orario" element={<OrarioPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/documentazione" element={<DocumentazionePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

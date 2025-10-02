@@ -1,3 +1,5 @@
+// File: src/components/Layout.jsx
+
 import React, { useState } from "react";
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -26,6 +28,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import GroupsIcon from "@mui/icons-material/Groups";
 import BadgeIcon from "@mui/icons-material/Badge";
 import OrarioIcon from "@mui/icons-material/CalendarMonth";
+import EventIcon from "@mui/icons-material/Event"; // Icona per l'agenda
 import ArchivioIcon from "@mui/icons-material/Archive";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { getAuth, signOut } from "firebase/auth";
@@ -40,6 +43,7 @@ const navSections = [
     links: [
       { text: "Dashboard", path: "/", icon: <DashboardIcon /> },
       { text: "Orario", path: "/orario", icon: <OrarioIcon /> },
+      { text: "Agenda", path: "/agenda", icon: <EventIcon /> }, // Aggiungi il link all'agenda
     ],
   },
   {
@@ -91,8 +95,8 @@ function Layout({ children, notifications = [] }) {
 
   const isDocSelected = location.pathname === "/documentazione";
 
-  // --- NUOVA LOGICA: Controlla se siamo sulla pagina dell'orario ---
-  const isOrarioPage = location.pathname === "/orario";
+  const isOrarioPage =
+    location.pathname === "/orario" || location.pathname === "/agenda";
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -266,15 +270,13 @@ function Layout({ children, notifications = [] }) {
         </Box>
       </Drawer>
 
-      {/* --- MODIFICA CHIAVE AL CONTENUTO PRINCIPALE --- */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: `calc(100% - ${drawerWidth}px)`,
-          // Se è la pagina orario, rimuovi la larghezza massima, altrimenti impostala e centra.
-          maxWidth: isOrarioPage ? "none" : "1400px", // Puoi mettere un valore come 1400px o quello che preferisci
+          maxWidth: isOrarioPage ? "none" : "1400px",
           margin: isOrarioPage ? "0" : "0 auto",
         }}
       >

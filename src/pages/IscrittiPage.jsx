@@ -1,3 +1,5 @@
+// File: src/pages/IscrittiPage.jsx
+
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -10,16 +12,19 @@ import {
   InputAdornment,
   useTheme,
   Stack,
+  IconButton, // Aggiunto
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import ViewModuleIcon from "@mui/icons-material/ViewModule"; // Icona per la griglia
+import ViewListIcon from "@mui/icons-material/ViewList"; // Icona per la lista
 import IscrittoForm from "../components/IscrittoForm.jsx";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
 import { exportToExcel } from "../utils/exportToExcel.js";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import moment from "moment";
-import { addIscritto } from "../services/firebaseService.js"; // <-- Importa il servizio corretto
+import { addIscritto } from "../services/firebaseService.js";
 
 const DRAWER_WIDTH = 280;
 
@@ -27,11 +32,20 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded }) {
+function IscrittiPage({
+  iscrittiList,
+  gruppiList,
+  onDataUpdate,
+  onIscrittoAdded,
+}) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
+  // Stato per la visualizzazione, legge il valore salvato in localStorage o usa 'grid' di default
+  const [viewMode, setViewMode] = useState(
+    localStorage.getItem("viewMode") || "grid"
+  );
 
   const { showNotification } = useNotification();
   const theme = useTheme();
@@ -40,23 +54,25 @@ function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded 
 
   const gruppoIdFromUrl = query.get("gruppoId");
 
-  // CORREZIONE: Semplificato useEffect per evitare loop e conflitti.
-  // Si attiva solo quando cambia l'ID del gruppo nell'URL.
   useEffect(() => {
     if (gruppoIdFromUrl) {
       setActiveFilter(`gruppo_${gruppoIdFromUrl}`);
     } else {
-      // Se l'URL non ha più il gruppoId, torna a "tutti"
       if (activeFilter.startsWith("gruppo_")) {
         setActiveFilter("tutti");
       }
     }
   }, [gruppoIdFromUrl]);
 
+  // Salva la preferenza di visualizzazione nel localStorage ogni volta che cambia
+  useEffect(() => {
+    localStorage.setItem("viewMode", viewMode);
+  }, [viewMode]);
+
   const activeGruppoFilter = useMemo(() => {
     if (!activeFilter.startsWith("gruppo_")) return null;
     const gruppoId = activeFilter.split("_")[1];
-    return gruppiList.find(g => g.id === gruppoId);
+    return gruppiList.find((g) => g.id === gruppoId);
   }, [activeFilter, gruppiList]);
 
   const handleToggleForm = () => setIsFormOpen(!isFormOpen);
@@ -102,78 +118,77 @@ function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded 
   const filteredIscritti = useMemo(() => {
     let baseList = iscrittiList;
 
-    // CORREZIONE: La logica di filtro del gruppo ora è la prima a essere applicata
     if (activeFilter.startsWith("gruppo_")) {
       const gruppoId = activeFilter.split("_")[1];
-      const gruppo = gruppiList.find(g => g.id === gruppoId);
+      const gruppo = gruppiList.find((g) => g.id === gruppoId);
       if (gruppo && gruppo.membri) {
         const membriIds = new Set(gruppo.membri);
-        baseList = baseList.filter(iscritto => membriIds.has(iscritto.id));
+        baseList = baseList.filter((iscritto) => membriIds.has(iscritto.id));
       } else {
-        return []; // Se il gruppo non è ancora caricato o non ha membri, non mostrare nulla
+        return [];
       }
     } else {
-        // Applica i filtri normali solo se non c'è un filtro di gruppo
-        switch (activeFilter) {
-          case "abbonamenti_scaduti":
-            baseList = baseList.filter((i) => {
-              if (!i.abbonamento?.scadenza) return false;
-              return moment(i.abbonamento.scadenza).isBefore(today, "day");
-            });
-            break;
-          case "abbonamenti_in_scadenza":
-            baseList = baseList.filter((i) => {
-              if (!i.abbonamento?.scadenza) return false;
-              const scadenza = moment(i.abbonamento.scadenza);
-              return (
-                scadenza.isSameOrAfter(today, "day") &&
-                scadenza.diff(today, "days") <= 30
-              );
-            });
-            break;
-          case "certificati_scaduti":
-            baseList = baseList.filter((i) => {
-              if (!i.certificatoMedico?.scadenza) return false;
-              return moment(i.certificatoMedico.scadenza).isBefore(today, "day");
-            });
-            break;
-          case "certificati_mancanti":
-            baseList = baseList.filter((i) => i.certificatoMedico?.presente === false);
-            break;
-          case "certificati_in_scadenza":
-            baseList = baseList.filter((i) => {
-              if (!i.certificatoMedico?.scadenza) return false;
-              const scadenza = moment(i.certificatoMedico.scadenza);
-              return (
-                scadenza.isSameOrAfter(today, "day") &&
-                scadenza.diff(today, "days") <= 30
-              );
-            });
-            break;
-          default:
-            // Nessun filtro, usa la lista base
-            break;
-        }
+      switch (activeFilter) {
+        case "abbonamenti_scaduti":
+          baseList = baseList.filter((i) => {
+            if (!i.abbonamento?.scadenza) return false;
+            return moment(i.abbonamento.scadenza).isBefore(today, "day");
+          });
+          break;
+        case "abbonamenti_in_scadenza":
+          baseList = baseList.filter((i) => {
+            if (!i.abbonamento?.scadenza) return false;
+            const scadenza = moment(i.abbonamento.scadenza);
+            return (
+              scadenza.isSameOrAfter(today, "day") &&
+              scadenza.diff(today, "days") <= 30
+            );
+          });
+          break;
+        case "certificati_scaduti":
+          baseList = baseList.filter((i) => {
+            if (!i.certificatoMedico?.scadenza) return false;
+            return moment(i.certificatoMedico.scadenza).isBefore(today, "day");
+          });
+          break;
+        case "certificati_mancanti":
+          baseList = baseList.filter(
+            (i) => i.certificatoMedico?.presente === false
+          );
+          break;
+        case "certificati_in_scadenza":
+          baseList = baseList.filter((i) => {
+            if (!i.certificatoMedico?.scadenza) return false;
+            const scadenza = moment(i.certificatoMedico.scadenza);
+            return (
+              scadenza.isSameOrAfter(today, "day") &&
+              scadenza.diff(today, "days") <= 30
+            );
+          });
+          break;
+        default:
+          break;
+      }
     }
 
-    // Il filtro di ricerca testuale viene applicato DOPO tutti gli altri filtri
     if (searchTerm) {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
-      return baseList.filter(
+      baseList = baseList.filter(
         (i) =>
           i.nome.toLowerCase().includes(lowercasedSearchTerm) ||
           i.cognome.toLowerCase().includes(lowercasedSearchTerm)
       );
     }
 
-    return baseList;
+    // Ordinamento per cognome
+    return [...baseList].sort((a, b) => a.cognome.localeCompare(b.cognome));
   }, [iscrittiList, gruppiList, activeFilter, searchTerm, today]);
 
   const isSelected = selectedIds.length > 0;
-  
+
   const clearGruppoFilter = () => {
-      navigate('/iscritti');
-  }
+    navigate("/iscritti");
+  };
 
   return (
     <Box>
@@ -206,23 +221,51 @@ function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded 
       />
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Ricerca Socio
-          </Typography>
-          <TextField
-            fullWidth
-            placeholder="Cerca per nome o cognome"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" gutterBottom>
+              Ricerca Socio
+            </Typography>
+            <TextField
+              fullWidth
+              placeholder="Cerca per nome o cognome"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+          <Box sx={{ ml: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Vista
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <IconButton
+                onClick={() => setViewMode("grid")}
+                color={viewMode === "grid" ? "primary" : "default"}
+              >
+                <ViewModuleIcon />
+              </IconButton>
+              <IconButton
+                onClick={() => setViewMode("list")}
+                color={viewMode === "list" ? "primary" : "default"}
+              >
+                <ViewListIcon />
+              </IconButton>
+            </Stack>
+          </Box>
         </Box>
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6" gutterBottom>
@@ -246,32 +289,68 @@ function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded 
                 <Chip
                   label="Abbonamenti Scaduti"
                   onClick={() => setActiveFilter("abbonamenti_scaduti")}
-                  color={activeFilter === "abbonamenti_scaduti" ? "error" : "default"}
-                  variant={activeFilter === "abbonamenti_scaduti" ? "filled" : "outlined"}
+                  color={
+                    activeFilter === "abbonamenti_scaduti" ? "error" : "default"
+                  }
+                  variant={
+                    activeFilter === "abbonamenti_scaduti"
+                      ? "filled"
+                      : "outlined"
+                  }
                 />
                 <Chip
                   label="Abbonamenti in scadenza"
                   onClick={() => setActiveFilter("abbonamenti_in_scadenza")}
-                  color={activeFilter === "abbonamenti_in_scadenza" ? "warning" : "default"}
-                  variant={activeFilter === "abbonamenti_in_scadenza" ? "filled" : "outlined"}
+                  color={
+                    activeFilter === "abbonamenti_in_scadenza"
+                      ? "warning"
+                      : "default"
+                  }
+                  variant={
+                    activeFilter === "abbonamenti_in_scadenza"
+                      ? "filled"
+                      : "outlined"
+                  }
                 />
                 <Chip
                   label="Certificati Scaduti"
                   onClick={() => setActiveFilter("certificati_scaduti")}
-                  color={activeFilter === "certificati_scaduti" ? "error" : "default"}
-                  variant={activeFilter === "certificati_scaduti" ? "filled" : "outlined"}
+                  color={
+                    activeFilter === "certificati_scaduti" ? "error" : "default"
+                  }
+                  variant={
+                    activeFilter === "certificati_scaduti"
+                      ? "filled"
+                      : "outlined"
+                  }
                 />
                 <Chip
                   label="Certificati Mancanti"
                   onClick={() => setActiveFilter("certificati_mancanti")}
-                  color={activeFilter === "certificati_mancanti" ? "error" : "default"}
-                  variant={activeFilter === "certificati_mancanti" ? "filled" : "outlined"}
+                  color={
+                    activeFilter === "certificati_mancanti"
+                      ? "error"
+                      : "default"
+                  }
+                  variant={
+                    activeFilter === "certificati_mancanti"
+                      ? "filled"
+                      : "outlined"
+                  }
                 />
                 <Chip
                   label="Certificati in scadenza"
                   onClick={() => setActiveFilter("certificati_in_scadenza")}
-                  color={activeFilter === "certificati_in_scadenza" ? "warning" : "default"}
-                  variant={activeFilter === "certificati_in_scadenza" ? "filled" : "outlined"}
+                  color={
+                    activeFilter === "certificati_in_scadenza"
+                      ? "warning"
+                      : "default"
+                  }
+                  variant={
+                    activeFilter === "certificati_in_scadenza"
+                      ? "filled"
+                      : "outlined"
+                  }
                 />
               </>
             )}
@@ -283,6 +362,7 @@ function IscrittiPage({ iscrittiList, gruppiList, onDataUpdate, onIscrittoAdded 
           onSelect={handleSelectIscritto}
           selection={selectedIds}
           activeFilter={activeFilter}
+          viewMode={viewMode} // Passa la modalità di visualizzazione al componente lista
         />
       </Paper>
 
