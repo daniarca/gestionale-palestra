@@ -56,14 +56,16 @@ function SchedaTecnicoPage() {
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
+  // FUNZIONE DI FETCH CORRETTA PER IL TECNICO
   const fetchTecnico = async () => {
     setLoading(true);
     try {
       const docRef = doc(db, "staff", tecnicoId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const tecnicoData = { id: docSnap.id, ...docSnap.data() };
-        setTecnico(tecnicoData);
+        setTecnico({ id: docSnap.id, ...docSnap.data() });
+
+        // Qui carichiamo SOLO i documenti del tecnico
         const docs = await fetchTecnicoDocuments(tecnicoId);
         setDocumenti(docs);
       } else {
@@ -75,6 +77,7 @@ function SchedaTecnicoPage() {
         "Errore dettagliato nel caricamento dati del tecnico:",
         error
       );
+      // Mostra un messaggio più generico se fallisce l'intera fetch
       showNotification("Errore nel caricamento dei dati.", "error");
     } finally {
       setLoading(false);
@@ -140,7 +143,9 @@ function SchedaTecnicoPage() {
         <CircularProgress />
       </Box>
     );
-  if (!tecnico) return <Typography>Tecnico non trovato.</Typography>;
+  // Se la fetch fallisce ma non è in loading, mostriamo il messaggio di fallback
+  if (!tecnico)
+    return <Typography>Dettagli tecnico non disponibili.</Typography>;
 
   return (
     <>
@@ -165,10 +170,11 @@ function SchedaTecnicoPage() {
         >
           <Box>
             <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-              {tecnico.nome || 'Nome Mancante'} {tecnico.cognome || 'Cognome Mancante'}
+              {tecnico.nome || "Nome Mancante"}{" "}
+              {tecnico.cognome || "Cognome Mancante"}
             </Typography>
             <Typography color="text.secondary" variant="h6">
-              {tecnico.ruolo || 'Ruolo N/D'}
+              {tecnico.ruolo || "Ruolo N/D"}
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
@@ -253,9 +259,13 @@ function SchedaTecnicoPage() {
               <Typography>
                 <strong>Residenza:</strong>{" "}
                 {/* Residenza e indirizzo più robusti */}
-                {`${tecnico.via || "N/D"}${tecnico.via && tecnico.numeroCivico ? `, ${tecnico.numeroCivico}` : ''}, ${tecnico.cap || "N/D"} ${
-                  tecnico.residenza || "N/D"
-                } (${tecnico.provincia || "N/D"})`}
+                {`${tecnico.via || "N/D"}${
+                  tecnico.via && tecnico.numeroCivico
+                    ? `, ${tecnico.numeroCivico}`
+                    : ""
+                }, ${tecnico.cap || "N/D"} ${tecnico.residenza || "N/D"} (${
+                  tecnico.provincia || "N/D"
+                })`}
               </Typography>
             </Grid>
           </Grid>

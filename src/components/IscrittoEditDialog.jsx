@@ -21,8 +21,7 @@ import {
 
 // Nuove costanti per Livelli e Categorie
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
-const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"]; // CORREZIONE: Microbaby -> Baby
-// NUOVA COSTANTE PER I TIPI DI CELLULARE
+const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
 const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
 
 function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
@@ -30,22 +29,21 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
 
   useEffect(() => {
     if (iscritto) {
-      // Pre-popola il form con i dati dell'iscritto, gestendo i campi nidificati
       setFormData({
         ...iscritto,
         haCertificato: iscritto.certificatoMedico?.presente || false,
         scadenzaCertificato: iscritto.certificatoMedico?.scadenza || "",
         scadenzaAbbonamento: iscritto.abbonamento?.scadenza || "",
-        // Nuovi campi
         livello: iscritto.livello || "",
         categoria: iscritto.categoria || "",
-        // INIZIO NUOVI CAMPI CELLULARE
-        // Fallback per vecchi dati che avevano solo 'cellulare'
-        cellulare1: iscritto.cellulare1 || iscritto.cellulare || "", 
+        codiceTesseramento1:
+          iscritto.codiceTesseramento1 || iscritto.codiceAssicurazione || "",
+        codiceTesseramento2: iscritto.codiceTesseramento2 || "",
+        codiceTesseramento3: iscritto.codiceTesseramento3 || "",
+        cellulare1: iscritto.cellulare1 || iscritto.cellulare || "",
         cellulare1Tipo: iscritto.cellulare1Tipo || "Mamma",
         cellulare2: iscritto.cellulare2 || "",
         cellulare2Tipo: iscritto.cellulare2Tipo || "",
-        // FINE NUOVI CAMPI CELLULARE
       });
     }
   }, [iscritto, open]);
@@ -59,25 +57,31 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
   };
 
   const handleSave = () => {
-    // Riorganizza i dati nella struttura corretta per Firebase prima di salvare
     const {
       haCertificato,
       scadenzaCertificato,
       scadenzaAbbonamento,
       livello,
       categoria,
-      cellulare, // Rimuovi il vecchio campo 'cellulare'
+      quotaIscrizione,
+      quotaMensile,
+      codiceAssicurazione,
+      codiceTesseramento1,
+      codiceTesseramento2,
+      codiceTesseramento3,
+      cellulare,
       cellulare1,
       cellulare1Tipo,
       cellulare2,
       cellulare2Tipo,
       ...rest
     } = formData;
-    
-    // Logica per non salvare campi cellulare vuoti
+
     const finalCellulare2 = cellulare2 || null;
-    const finalCellulare2Tipo = finalCellulare2 ? (cellulare2Tipo || "Altro") : null;
-    
+    const finalCellulare2Tipo = finalCellulare2
+      ? cellulare2Tipo || "Altro"
+      : null;
+
     const dataToSave = {
       ...rest,
       certificatoMedico: {
@@ -85,9 +89,13 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         scadenza: scadenzaCertificato,
       },
       abbonamento: { scadenza: scadenzaAbbonamento },
-      livello, 
+      livello,
       categoria,
-      // SALVA NUOVI CAMPI
+      quotaIscrizione: parseFloat(quotaIscrizione) || 0,
+      quotaMensile: parseFloat(quotaMensile) || 0,
+      codiceTesseramento1,
+      codiceTesseramento2,
+      codiceTesseramento3,
       cellulare1,
       cellulare1Tipo,
       cellulare2: finalCellulare2,
@@ -105,7 +113,7 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3} sx={{ pt: 1 }}>
-          {/* 1. SEZIONE ANAGRAFICA BASE */}
+          {/* ... il resto del JSX rimane invariato ... */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Dati Anagrafici Base
@@ -154,7 +162,7 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={12}>
                 <TextField
                   fullWidth
                   margin="dense"
@@ -164,20 +172,39 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   margin="dense"
-                  name="codiceAssicurazione"
-                  label="Codice Assicurazione"
-                  value={formData.codiceAssicurazione || ""}
+                  name="codiceTesseramento1"
+                  label="Codice Tesseramento 1"
+                  value={formData.codiceTesseramento1 || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="codiceTesseramento2"
+                  label="Codice Tesseramento 2"
+                  value={formData.codiceTesseramento2 || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="codiceTesseramento3"
+                  label="Codice Tesseramento 3"
+                  value={formData.codiceTesseramento3 || ""}
                   onChange={handleChange}
                 />
               </Grid>
             </Grid>
           </Grid>
 
-          {/* 2. SEZIONE INDIRIZZO E CONTATTI */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Indirizzo e Contatti
@@ -234,8 +261,6 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   onChange={handleChange}
                 />
               </Grid>
-              
-              {/* INIZIO NUOVI CAMPI CELLULARE 1 */}
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
@@ -263,9 +288,6 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   </Select>
                 </FormControl>
               </Grid>
-              {/* FINE NUOVI CAMPI CELLULARE 1 */}
-              
-              {/* INIZIO NUOVI CAMPI CELLULARE 2 */}
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
@@ -286,9 +308,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                     onChange={handleChange}
                     displayEmpty
                   >
-                     <MenuItem value="">
-                        <em>N/D</em>
-                      </MenuItem>
+                    <MenuItem value="">
+                      <em>N/D</em>
+                    </MenuItem>
                     {TIPI_CELLULARE.map((tipo) => (
                       <MenuItem key={tipo} value={tipo}>
                         {tipo}
@@ -297,18 +319,15 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   </Select>
                 </FormControl>
               </Grid>
-              {/* FINE NUOVI CAMPI CELLULARE 2 */}
             </Grid>
           </Grid>
 
-          {/* 3. SEZIONE GRUPPO E LIVELLO - FIX SIZING */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Dati Tecnici e Quote
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              {/* NUOVI CAMPI LIVELLO E CATEGORIA (sm=6 per larghezza maggiore) */}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth margin="dense">
                   <InputLabel shrink={true}>Livello</InputLabel>
@@ -402,7 +421,6 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
             </Grid>
           </Grid>
 
-          {/* 4. SEZIONE CERTIFICATO E NOTE */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Certificato e Annotazioni
@@ -450,7 +468,6 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
             </Grid>
           </Grid>
 
-          {/* 5. SEZIONE DATI GENITORE (Se Minore) */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Dati Genitore/Responsabile

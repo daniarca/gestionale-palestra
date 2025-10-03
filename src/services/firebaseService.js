@@ -100,7 +100,6 @@ export const deleteGruppo = async (id) => {
 const TECNICI_COLLECTION = "staff";
 
 export const fetchTecnici = async () => {
-  // Ho rimosso l'ordinamento dalla query per evitare errori di indice mancante su Firebase.
   const q = query(collection(db, TECNICI_COLLECTION));
   const querySnapshot = await getDocs(q);
   const tecniciList = querySnapshot.docs.map((doc) => ({
@@ -109,10 +108,9 @@ export const fetchTecnici = async () => {
   }));
 
   // Ordiniamo i dati qui, nel codice, in modo sicuro.
-  // Questo previene l'errore se un tecnico non ha il campo 'cognome'.
   return tecniciList.sort((a, b) => {
-    const cognomeA = a.cognome || ""; // Se il cognome non esiste, usa una stringa vuota
-    const cognomeB = b.cognome || ""; // Se il cognome non esiste, usa una stringa vuota
+    const cognomeA = a.cognome || "";
+    const cognomeB = b.cognome || "";
     return cognomeA.localeCompare(cognomeB);
   });
 };
@@ -178,15 +176,29 @@ export const uploadTecnicoFile = async (file, tecnicoId) => {
   const docRef = await addDoc(collection(db, TECNICI_DOCS_COLLECTION), docData);
   return { id: docRef.id, ...docData };
 };
+
+// FIX QUI: RIMOSSO ORDERBY DA FIRESTORE E AGGIUNTO L'ORDINAMENTO LATO CLIENT
 export const fetchTecnicoDocuments = async (tecnicoId) => {
   const q = query(
     collection(db, TECNICI_DOCS_COLLECTION),
-    where("tecnicoId", "==", tecnicoId),
-    orderBy("createdAt", "desc")
+    where("tecnicoId", "==", tecnicoId)
+    // RIMOSSO: orderBy("createdAt", "desc")
   );
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  const docsList = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  // Ordina localmente per data di creazione discendente per evitare l'errore di indice
+  return docsList.sort((a, b) => {
+    const dateA = a.createdAt?.toDate()?.getTime() || 0;
+    const dateB = b.createdAt?.toDate()?.getTime() || 0;
+    return dateB - dateA; // Ordine discendente (più recenti prima)
+  });
 };
+
 export const deleteTecnicoFile = async (docId, filePath) => {
   const fileRef = ref(storage, filePath);
   await deleteObject(fileRef);

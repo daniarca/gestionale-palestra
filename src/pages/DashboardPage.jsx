@@ -1,3 +1,5 @@
+// File: src/pages/DashboardPage.jsx
+
 import React, { useMemo } from "react";
 import {
   Typography,
@@ -116,8 +118,10 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
     });
 
     // Dati finanziari
-    const incassoTotale = pagamenti.reduce((acc, p) => acc + p.cifra, 0);
-    const totalePagato = incassoTotale;
+    const incassoTotale = pagamenti.reduce(
+      (acc, p) => acc + (parseFloat(p.cifra) || 0),
+      0
+    );
 
     // Orari
     const orariDiOggi = gruppi
@@ -146,9 +150,20 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
       })),
     ].sort((a, b) => a.scadenzaData.diff(b.scadenzaData));
 
-    const pagamentiRecenti = pagamenti
-      .sort((a, b) => new Date(b.dataPagamento) - new Date(a.dataPagamento))
+    // --- INIZIO FIX ---
+    // 1. Filtra via i pagamenti con date future per non "inquinare" la lista.
+    // 2. Crea una copia dell'array prima di ordinarlo per evitare mutazioni.
+    const pagamentiRecenti = [...pagamenti]
+      .filter(
+        (p) =>
+          p.dataPagamento && moment(p.dataPagamento).isSameOrBefore(oggi, "day")
+      )
+      .sort(
+        (a, b) =>
+          moment(b.dataPagamento).valueOf() - moment(a.dataPagamento).valueOf()
+      )
       .slice(0, 5);
+    // --- FINE FIX ---
 
     return {
       totaleIscritti: iscritti.length,
@@ -158,7 +173,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
       certificatiOKCount: certificatiOK.length,
       abbonamentiScadutiCount: abbonamentiScaduti.length,
       totaleIncassato: incassoTotale,
-      totalePagato: totalePagato,
       orariDiOggi,
       scadenzeDaVisualizzare,
       pagamentiRecenti,
@@ -173,17 +187,14 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
     );
   }
 
-  // ALTEZZA MINIMA COMUNE PER LE CARD CENTRALI
   const cardMinHeight = { xs: "auto", md: "250px" };
-
-  // Stili per le card dettagli (design flat)
   const detailCardStyle = {
     p: 3,
     borderRadius: 4,
     elevation: 0,
     border: `1px solid ${theme.palette.divider}`,
     backgroundColor: "background.paper",
-    minHeight: cardMinHeight, // ALTEZZA MINIMA UNIFICATA
+    minHeight: cardMinHeight,
   };
 
   return (
@@ -192,7 +203,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
         Dashboard
       </Typography>
 
-      {/* 1. SEZIONE AZIONI RAPIDE / ALERT (Come i banner del competitor) */}
       <Paper
         elevation={0}
         sx={{
@@ -260,16 +270,12 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
         </Stack>
       </Paper>
 
-      {/* 2. STATISTICHE CHIAVE E CASSA (Layout a 3 colonne su desktop) */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* COLONNA 1: ANAGRAFICA & CORSI */}
         <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Anagrafica & Corsi
           </Typography>
           <Paper sx={detailCardStyle}>
-            {" "}
-            {/* Contenitore Principale per Anagrafica & Corsi */}
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <CountCard
@@ -339,7 +345,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           </Paper>
         </Grid>
 
-        {/* COLONNA 2: RIEPILOGO CASSA */}
         <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Riepilogo Cassa
@@ -365,7 +370,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
               €{stats.totaleIncassato.toFixed(2)}
             </Typography>
             <Divider sx={{ my: 2 }} />
-
             <Box
               sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
             >
@@ -389,7 +393,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           </Paper>
         </Grid>
 
-        {/* COLONNA 3: ORARI OGGI */}
         <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Orari di Oggi
@@ -432,9 +435,7 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
         </Grid>
       </Grid>
 
-      {/* 3. LISTE DETTAGLIO (Scadenze & Pagamenti Recenti) */}
       <Grid container spacing={3}>
-        {/* LISTA SCADENZE */}
         <Grid item xs={12} md={6}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Scadenze da Controllare
@@ -442,8 +443,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           <Paper
             sx={{ ...detailCardStyle, minHeight: { xs: "auto", md: "450px" } }}
           >
-            {" "}
-            {/* Aumenta l'altezza delle liste per bilanciare */}
             <Box sx={{ maxHeight: 400, overflow: "auto" }}>
               {stats.scadenzeDaVisualizzare.length > 0 ? (
                 <List dense disablePadding>
@@ -490,7 +489,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           </Paper>
         </Grid>
 
-        {/* LISTA PAGAMENTI RECENTI */}
         <Grid item xs={12} md={6}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Ultimi Pagamenti Registrati
@@ -498,13 +496,11 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           <Paper
             sx={{ ...detailCardStyle, minHeight: { xs: "auto", md: "450px" } }}
           >
-            {" "}
-            {/* Aumenta l'altezza delle liste per bilanciare */}
             <Box sx={{ maxHeight: 400, overflow: "auto" }}>
               {stats.pagamentiRecenti.length > 0 ? (
                 <List dense disablePadding>
                   {stats.pagamentiRecenti.map((p, index) => (
-                    <React.Fragment key={index}>
+                    <React.Fragment key={p.id || index}>
                       <ListItem disableGutters>
                         <ListItemText
                           primary={
@@ -515,17 +511,19 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                               {p.iscrittoNome}
                             </Typography>
                           }
-                          secondary={p.dataPagamento}
+                          secondary={moment(p.dataPagamento).format(
+                            "DD/MM/YYYY"
+                          )}
                         />
                         <Box sx={{ textAlign: "right" }}>
                           <Chip
-                            label={`€${p.cifra.toFixed(2)}`}
+                            label={`€${(p.cifra || 0).toFixed(2)}`}
                             size="small"
                             color="success"
                             sx={{ mr: 1, fontWeight: "bold" }}
                           />
                           <Chip
-                            label={p.tipo}
+                            label={p.tipo || "N/D"}
                             size="small"
                             variant="outlined"
                           />

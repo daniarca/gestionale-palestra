@@ -33,6 +33,7 @@ import OrarioIcon from "@mui/icons-material/CalendarMonth";
 import EventIcon from "@mui/icons-material/Event";
 import ArchivioIcon from "@mui/icons-material/Archive";
 import DescriptionIcon from "@mui/icons-material/Description";
+import InfoIcon from "@mui/icons-material/Info";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -54,7 +55,7 @@ const navSections = [
     links: [
       { text: "Iscritti", path: "/iscritti", icon: <PeopleIcon /> },
       { text: "Gruppi", path: "/gruppi", icon: <GroupsIcon /> },
-      { text: "Tecnici", path: "/tecnici", icon: <BadgeIcon /> }, // <-- RINOMINATO
+      { text: "Tecnici", path: "/tecnici", icon: <BadgeIcon /> },
       { text: "Archivio", path: "/archivio", icon: <ArchivioIcon /> },
     ],
   },
@@ -67,7 +68,6 @@ const navSections = [
 ];
 
 function Layout({ children, notifications = [] }) {
-  // ... il resto del componente non cambia
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -209,10 +209,15 @@ function Layout({ children, notifications = [] }) {
             variant="h6"
             noWrap
             component="div"
-            sx={{ fontWeight: "bold", color: "primary.main", flexGrow: 1 }}
+            sx={{ fontWeight: "bold", color: "primary.main" }}
           >
             ASD GYM POINT
           </Typography>
+
+          {/* Box invisibile per spingere tutto a destra */}
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* --- BLOCCO DI PULSANTI ALLINEATO A DESTRA --- */}
           <Box
             sx={{
               display: { xs: "none", md: "flex" },
@@ -228,21 +233,43 @@ function Layout({ children, notifications = [] }) {
             >
               Documentazione
             </Button>
+            <Button
+              component={RouterLink}
+              to="/credits"
+              color="inherit"
+              startIcon={<InfoIcon />}
+            >
+              Crediti e Log
+            </Button>
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
             <Typography variant="body2">{currentUser?.email}</Typography>
+            <IconButton color="inherit" onClick={handleNotificationsClick}>
+              <Badge badgeContent={totalNotifications} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            <Button
+              color="inherit"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
           </Box>
-          <IconButton color="inherit" onClick={handleNotificationsClick}>
-            <Badge badgeContent={totalNotifications} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-          <Button
-            color="inherit"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            sx={{ display: { xs: "none", md: "inline-flex" } }}
+
+          {/* Gestione per mobile (solo icone) */}
+          <Box
+            sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}
           >
-            Logout
-          </Button>
+            <IconButton color="inherit" onClick={handleNotificationsClick}>
+              <Badge badgeContent={totalNotifications} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            <IconButton color="inherit" onClick={handleLogout}>
+              <LogoutIcon />
+            </IconButton>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box

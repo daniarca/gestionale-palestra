@@ -23,12 +23,9 @@ import SaveIcon from "@mui/icons-material/Save";
 
 // Nuove costanti per Livelli e Categorie (per ginnastica artistica)
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
-// MODIFICA: Corretto "Microbaby" in "Baby" per coerenza con gli altri file.
 const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
-// NUOVA COSTANTE PER I TIPI DI CELLULARE
 const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
 
-// Il componente ora riceve i props per la gestione del Dialog
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   // STATI DEL FORM
   const [nome, setNome] = useState("");
@@ -39,15 +36,15 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   const [cap, setCap] = useState("");
   const [via, setVia] = useState("");
   const [numeroCivico, setNumeroCivico] = useState("");
-  // INIZIO NUOVI STATI PER I CELLULARI
   const [cellulare1, setCellulare1] = useState("");
-  const [cellulare1Tipo, setCellulare1Tipo] = useState("Mamma"); // Default: Contatto di riferimento
+  const [cellulare1Tipo, setCellulare1Tipo] = useState("Mamma");
   const [cellulare2, setCellulare2] = useState("");
   const [cellulare2Tipo, setCellulare2Tipo] = useState("");
-  // FINE NUOVI STATI
   const [email, setEmail] = useState("");
   const [codiceFiscale, setCodiceFiscale] = useState("");
-  const [codiceAssicurazione, setCodiceAssicurazione] = useState("");
+  const [codiceTesseramento1, setCodiceTesseramento1] = useState("");
+  const [codiceTesseramento2, setCodiceTesseramento2] = useState("");
+  const [codiceTesseramento3, setCodiceTesseramento3] = useState("");
   const [nomeGenitore, setNomeGenitore] = useState("");
   const [cfGenitore, setCfGenitore] = useState("");
   const [annotazioni, setAnnotazioni] = useState("");
@@ -69,15 +66,15 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     setCap("");
     setVia("");
     setNumeroCivico("");
-    // RESET NUOVI CAMPI
     setCellulare1("");
     setCellulare1Tipo("Mamma");
     setCellulare2("");
     setCellulare2Tipo("");
-    // FINE RESET NUOVI CAMPI
     setEmail("");
     setCodiceFiscale("");
-    setCodiceAssicurazione("");
+    setCodiceTesseramento1("");
+    setCodiceTesseramento2("");
+    setCodiceTesseramento3("");
     setNomeGenitore("");
     setCfGenitore("");
     setAnnotazioni("");
@@ -89,7 +86,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     setQuotaMensile("");
     setLivello("");
     setCategoria("");
-    onClose(); // Chiude il Dialog
+    onClose();
   };
 
   const handleSubmit = (e) => {
@@ -107,25 +104,25 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       cap,
       via,
       numeroCivico,
-      // AGGIUNGI NUOVI CAMPI
       cellulare1,
       cellulare1Tipo,
-      cellulare2: cellulare2 || null, // Salva null se vuoto
+      cellulare2: cellulare2 || null,
       cellulare2Tipo: cellulare2 ? cellulare2Tipo || "Altro" : null,
-      // FINE AGGIUNTA
       email,
       codiceFiscale,
-      codiceAssicurazione,
+      codiceTesseramento1,
+      codiceTesseramento2,
+      codiceTesseramento3,
       nomeGenitore,
       cfGenitore,
       annotazioni,
       sede,
-      quotaIscrizione,
-      quotaMensile,
+      quotaIscrizione: parseFloat(quotaIscrizione) || 0,
+      quotaMensile: parseFloat(quotaMensile) || 0,
       livello,
       categoria,
       stato: "attivo",
-      dataIscrizione: new Date().toISOString().split("T")[0], // Aggiunge la data di iscrizione
+      dataIscrizione: new Date().toISOString().split("T")[0],
       certificatoMedico: {
         presente: haCertificato,
         scadenza: haCertificato ? scadenzaCertificato : null,
@@ -133,12 +130,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       abbonamento: { scadenza: scadenzaAbbonamento },
     };
     onIscrittoAggiunto(nuovoIscritto);
-
-    // Resetta e chiude
     resetForm();
   };
 
-  // Usiamo una funzione separata per la chiusura del form senza reset dei dati (Annulla)
   const handleClose = () => {
     onClose();
   };
@@ -149,7 +143,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       <Box component="form" onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={3} sx={{ pt: 1 }}>
-            {/* 1. SEZIONE ANAGRAFICA BASE */}
+            {/* ... il resto del JSX rimane invariato ... */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
@@ -203,7 +197,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={12}>
                   <TextField
                     size="small"
                     fullWidth
@@ -213,20 +207,38 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     onChange={(e) => setCodiceFiscale(e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={4}>
                   <TextField
                     size="small"
                     fullWidth
                     variant="outlined"
-                    label="Codice Assicurazione"
-                    value={codiceAssicurazione}
-                    onChange={(e) => setCodiceAssicurazione(e.target.value)}
+                    label="Codice Tesseramento 1"
+                    value={codiceTesseramento1}
+                    onChange={(e) => setCodiceTesseramento1(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    label="Codice Tesseramento 2"
+                    value={codiceTesseramento2}
+                    onChange={(e) => setCodiceTesseramento2(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    label="Codice Tesseramento 3"
+                    value={codiceTesseramento3}
+                    onChange={(e) => setCodiceTesseramento3(e.target.value)}
                   />
                 </Grid>
               </Grid>
             </Grid>
-
-            {/* 2. SEZIONE INDIRIZZO E CONTATTI */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
@@ -287,8 +299,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </Grid>
-
-                {/* INIZIO NUOVI CAMPI CELLULARE 1 */}
                 <Grid item xs={12} sm={4}>
                   <TextField
                     size="small"
@@ -317,9 +327,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                {/* FINE NUOVI CAMPI CELLULARE 1 */}
-
-                {/* INIZIO NUOVI CAMPI CELLULARE 2 */}
                 <Grid item xs={12} sm={4}>
                   <TextField
                     size="small"
@@ -351,11 +358,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                {/* FINE NUOVI CAMPI CELLULARE 2 */}
               </Grid>
             </Grid>
-
-            {/* 3. SEZIONE GRUPPO E LIVELLO */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
@@ -407,7 +411,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     </Select>
                   </FormControl>
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <TextField
                     size="small"
@@ -432,7 +435,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     onChange={(e) => setQuotaMensile(e.target.value)}
                   />
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth size="small" variant="outlined">
                     <InputLabel shrink={true}>Sede di Iscrizione</InputLabel>
@@ -461,8 +463,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                 </Grid>
               </Grid>
             </Grid>
-
-            {/* 4. SEZIONE CERTIFICATO E NOTE */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
@@ -511,8 +511,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                 </Grid>
               </Grid>
             </Grid>
-
-            {/* 5. SEZIONE DATI GENITORE (Se Minore) */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
