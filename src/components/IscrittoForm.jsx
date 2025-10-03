@@ -25,6 +25,8 @@ import SaveIcon from "@mui/icons-material/Save";
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
 // MODIFICA: Corretto "Microbaby" in "Baby" per coerenza con gli altri file.
 const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
+// NUOVA COSTANTE PER I TIPI DI CELLULARE
+const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
 
 // Il componente ora riceve i props per la gestione del Dialog
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
@@ -37,7 +39,12 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   const [cap, setCap] = useState("");
   const [via, setVia] = useState("");
   const [numeroCivico, setNumeroCivico] = useState("");
-  const [cellulare, setCellulare] = useState("");
+  // INIZIO NUOVI STATI PER I CELLULARI
+  const [cellulare1, setCellulare1] = useState("");
+  const [cellulare1Tipo, setCellulare1Tipo] = useState("Mamma"); // Default: Contatto di riferimento
+  const [cellulare2, setCellulare2] = useState("");
+  const [cellulare2Tipo, setCellulare2Tipo] = useState("");
+  // FINE NUOVI STATI
   const [email, setEmail] = useState("");
   const [codiceFiscale, setCodiceFiscale] = useState("");
   const [codiceAssicurazione, setCodiceAssicurazione] = useState("");
@@ -62,7 +69,12 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     setCap("");
     setVia("");
     setNumeroCivico("");
-    setCellulare("");
+    // RESET NUOVI CAMPI
+    setCellulare1("");
+    setCellulare1Tipo("Mamma");
+    setCellulare2("");
+    setCellulare2Tipo("");
+    // FINE RESET NUOVI CAMPI
     setEmail("");
     setCodiceFiscale("");
     setCodiceAssicurazione("");
@@ -95,7 +107,12 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       cap,
       via,
       numeroCivico,
-      cellulare,
+      // AGGIUNGI NUOVI CAMPI
+      cellulare1,
+      cellulare1Tipo,
+      cellulare2: cellulare2 || null, // Salva null se vuoto
+      cellulare2Tipo: cellulare2 ? cellulare2Tipo || "Altro" : null,
+      // FINE AGGIUNTA
       email,
       codiceFiscale,
       codiceAssicurazione,
@@ -270,16 +287,71 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+
+                {/* INIZIO NUOVI CAMPI CELLULARE 1 */}
+                <Grid item xs={12} sm={4}>
                   <TextField
                     size="small"
                     fullWidth
                     variant="outlined"
-                    label="Cellulare"
-                    value={cellulare}
-                    onChange={(e) => setCellulare(e.target.value)}
+                    label="Cellulare 1"
+                    value={cellulare1}
+                    onChange={(e) => setCellulare1(e.target.value)}
                   />
                 </Grid>
+                <Grid item xs={12} sm={2}>
+                  <FormControl fullWidth size="small" variant="outlined">
+                    <InputLabel shrink={true}>Tipo 1</InputLabel>
+                    <Select
+                      name="cellulare1Tipo"
+                      label="Tipo 1"
+                      value={cellulare1Tipo}
+                      onChange={(e) => setCellulare1Tipo(e.target.value)}
+                      displayEmpty
+                    >
+                      {TIPI_CELLULARE.map((tipo) => (
+                        <MenuItem key={tipo} value={tipo}>
+                          {tipo}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                {/* FINE NUOVI CAMPI CELLULARE 1 */}
+
+                {/* INIZIO NUOVI CAMPI CELLULARE 2 */}
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    label="Cellulare 2 (Opzionale)"
+                    value={cellulare2}
+                    onChange={(e) => setCellulare2(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <FormControl fullWidth size="small" variant="outlined">
+                    <InputLabel shrink={true}>Tipo 2</InputLabel>
+                    <Select
+                      name="cellulare2Tipo"
+                      label="Tipo 2"
+                      value={cellulare2Tipo}
+                      onChange={(e) => setCellulare2Tipo(e.target.value)}
+                      displayEmpty
+                    >
+                      <MenuItem value="" disabled>
+                        N/D
+                      </MenuItem>
+                      {TIPI_CELLULARE.map((tipo) => (
+                        <MenuItem key={tipo} value={tipo}>
+                          {tipo}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                {/* FINE NUOVI CAMPI CELLULARE 2 */}
               </Grid>
             </Grid>
 

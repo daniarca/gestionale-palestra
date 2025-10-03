@@ -1,3 +1,5 @@
+// File: src/pages/SchedaSocioPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
@@ -126,7 +128,7 @@ function SchedaSocioPage({ onDataUpdate }) {
   // <-- INIZIO LOGICA PAGAMENTO CON NUOVE REGOLE -->
   const handleAggiungiPagamento = async (paymentData) => {
     if (!iscritto) return;
-    const { cifra, tipo, mese } = paymentData;
+    const { cifra, tipo, mese, metodoPagamento } = paymentData;
 
     const nuovoPagamento = {
         iscrittoId: iscritto.id,
@@ -135,6 +137,7 @@ function SchedaSocioPage({ onDataUpdate }) {
         tipo: tipo,
         sede: iscritto.sede || 'N/D',
         dataPagamento: moment().format('YYYY-MM-DD'),
+        metodoPagamento: metodoPagamento,
     };
 
     if (tipo === 'Quota Mensile') {
@@ -143,7 +146,7 @@ function SchedaSocioPage({ onDataUpdate }) {
 
     const iscrittoRef = doc(db, "iscritti", iscritto.id);
     let datiDaAggiornare = {};
-    let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato.`;
+    let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato. Metodo: ${metodoPagamento}.`;
 
     if (tipo === 'Quota Mensile') {
         const quotaMensileStandard = iscritto.quotaMensile || 60;
@@ -153,31 +156,24 @@ function SchedaSocioPage({ onDataUpdate }) {
             const oggi = moment();
             const scadenzaAttuale = iscritto.abbonamento?.scadenza ? moment(iscritto.abbonamento.scadenza) : null;
             
-            // La base per il calcolo è la data più avanti nel tempo tra l'inizio del mese corrente e la scadenza attuale.
-            // Se la scadenza è già futura, partiamo da lì per non perdere giorni.
-            // Se è passata, partiamo dall'inizio del mese in cui viene fatto il pagamento.
-            const baseDiPartenza = (scadenzaAttuale && scadenzaAttuale.isAfter(oggi)) ? scadenzaAttuale.clone().startOf('month') : oggi.clone().startOf('month');
+            const estensioneDa = scadenzaAttuale && scadenzaAttuale.isAfter(oggi) ? scadenzaAttuale.clone() : oggi.clone();
 
-            // Calcola l'ultimo mese completamente coperto dal pagamento
-            const ultimoMeseCoperto = baseDiPartenza.clone().add(mesiPagati - 1, 'months');
-
-            // La nuova scadenza è il primo giorno del mese SUCCESSIVO all'ultimo mese coperto
-            const nuovaScadenzaDate = ultimoMeseCoperto.clone().add(1, 'month').startOf('month');
+            const nuovaScadenzaDate = estensioneDa.clone().add(mesiPagati, 'months');
             const nuovaScadenzaString = nuovaScadenzaDate.format('YYYY-MM-DD');
 
             datiDaAggiornare.abbonamento = {
                 scadenza: nuovaScadenzaString,
-                mesePagato: ultimoMeseCoperto.month() // Salva l'indice dell'ultimo mese interamente pagato
+                mesePagato: nuovaScadenzaDate.month()
             };
 
-            alertMessage = `Pagamento di ${mesiPagati} mese/i registrato. Nuova scadenza: ${nuovaScadenzaDate.format('DD/MM/YYYY')}`;
+            alertMessage = `Pagamento di ${mesiPagati} mese/i registrato. Nuova scadenza: ${nuovaScadenzaDate.format('DD/MM/YYYY')}. Metodo: ${metodoPagamento}.`;
         } else {
-             alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza.`;
+             alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza. Metodo: ${metodoPagamento}.`;
         }
-    } else if (tipo === 'Iscrizione / Annuale') {
+    } else if (tipo === 'Iscrizione' || tipo === 'Quota Iscrizione') {
         const quotaIscrizionePrecedente = iscritto.quotaIscrizione ? parseFloat(iscritto.quotaIscrizione) : 0;
         datiDaAggiornare.quotaIscrizione = quotaIscrizionePrecedente + cifra;
-        alertMessage = `Pagamento di Iscrizione/Annuale registrato per ${cifra}€. Totale versato: ${datiDaAggiornare.quotaIscrizione}€`;
+        alertMessage = `Pagamento di Iscrizione/Annuale registrato per ${cifra}€. Totale versato: ${datiDaAggiornare.quotaIscrizione}€. Metodo: ${metodoPagamento}.`;
     }
 
     try {
@@ -224,6 +220,23 @@ function SchedaSocioPage({ onDataUpdate }) {
     if (monthIndex == null || monthIndex === '') return 'N/D';
     return moment().month(monthIndex).format('MMMM').charAt(0).toUpperCase() + moment().month(monthIndex).format('MMMM').slice(1);
   };
+  
+  // Funzione helper per renderizzare i cellulari
+  const renderCellulare = (numero, tipo) => {
+    if (!numero) return null;
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+            <Typography><strong>{tipo || 'Contatto'}:</strong></Typography>
+            <Chip 
+                label={numero} 
+                size="small" 
+                color="primary" 
+                variant="outlined" 
+            />
+        </Box>
+    );
+  };
+
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
   if (!iscritto) return <Typography>Iscritto non trovato.</Typography>;
@@ -294,6 +307,7 @@ function SchedaSocioPage({ onDataUpdate }) {
           </Tabs>
         </Box>
 
+        {/* TabPanel 0: Generale */}
         <TabPanel value={tabValue} index={0}>
           <Typography variant="h6" gutterBottom>Dati Anagrafici</Typography>
           <Grid container spacing={1}>
@@ -339,14 +353,30 @@ function SchedaSocioPage({ onDataUpdate }) {
 
         </TabPanel>
 
+        {/* TabPanel 1: Contatti (Contenuto Corretto e Strutturato) */}
         <TabPanel value={tabValue} index={1}>
           <Typography variant="h6" gutterBottom>Indirizzo e Contatti</Typography>
           <Grid container spacing={1}>
             <Grid item xs={12} sm={6}><Typography><strong>Email:</strong> {iscritto.email || 'N/D'}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography><strong>Cellulare:</strong> {iscritto.cellulare || 'N/D'}</Typography></Grid>
             <Grid item xs={12}><Typography><strong>Residenza:</strong> {`${iscritto.via || ''} ${iscritto.numeroCivico || ''}, ${iscritto.cap || ''} ${iscritto.residenza || ''}`}</Typography></Grid>
+            
+            <Grid item xs={12}>
+                {/* NUOVA STRUTTURA DEL TITOLO PER I CONTATTI TELEFONICI */}
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1, mt: 2 }}>
+                    Contatti Telefonici
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                
+                {renderCellulare(iscritto.cellulare1, iscritto.cellulare1Tipo)}
+                {renderCellulare(iscritto.cellulare2, iscritto.cellulare2Tipo)}
+                {!iscritto.cellulare1 && !iscritto.cellulare2 && (
+                    <Typography color="text.secondary">Nessun numero di cellulare registrato.</Typography>
+                )}
+            </Grid>
           </Grid>
         </TabPanel>
+
+        {/* TabPanel 2: Dati Sanitari (Contenuto Corretto) */}
         <TabPanel value={tabValue} index={2}>
           <Typography variant="h6" gutterBottom>Dati Sanitari</Typography>
           <Grid container spacing={1}>
@@ -355,10 +385,14 @@ function SchedaSocioPage({ onDataUpdate }) {
             <Grid item xs={12} sm={6}><Typography><strong>Scadenza Certificato:</strong> {formatDate(iscritto.certificatoMedico?.scadenza)}</Typography></Grid>
           </Grid>
         </TabPanel>
+        
+        {/* TabPanel 3: Pagamenti (Contenuto Corretto) */}
         <TabPanel value={tabValue} index={3}>
           <Button onClick={() => setPagamentoDialogOpen(true)} variant="contained" color="success" sx={{ mb: 2 }}>Aggiungi Pagamento</Button>
           <StoricoPagamenti pagamenti={pagamenti} quotaMensile={iscritto.quotaMensile} quotaIscrizione={iscritto.quotaIscrizione} />
         </TabPanel>
+        
+        {/* TabPanel 4: Documenti (Contenuto Corretto) */}
         <TabPanel value={tabValue} index={4}>
           <Typography variant="h6" gutterBottom>Gestione Documentale</Typography>
           <FileUpload onUpload={handleFileUpload} isLoading={uploading} />

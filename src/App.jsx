@@ -32,24 +32,29 @@ function MainApp() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const iscrittiQuery = query(
+      // Query per gli iscritti attivi (per la lista principale e la dashboard)
+      const iscrittiAttiviQuery = query(
         collection(db, "iscritti"),
         where("stato", "==", "attivo")
       );
+      // Query per TUTTI gli iscritti (necessaria per passare la lista completa al ReportPage)
+      const allIscrittiQuery = query(collection(db, "iscritti")); 
       const gruppiQuery = query(collection(db, "gruppi"));
       const pagamentiQuery = query(collection(db, "pagamenti"));
       const staffQuery = query(collection(db, "staff"));
 
-      const [iscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
+      const [iscrittiAttiviSnap, allIscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
         await Promise.all([
-          getDocs(iscrittiQuery),
+          getDocs(iscrittiAttiviQuery),
+          getDocs(allIscrittiQuery),
           getDocs(gruppiQuery),
           getDocs(pagamentiQuery),
           getDocs(staffQuery),
         ]);
 
+      // Imposta iscritti con la lista completa per comodità nel memo
       setIscritti(
-        iscrittiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        allIscrittiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
       );
       setGruppi(gruppiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setPagamenti(
@@ -62,55 +67,70 @@ function MainApp() {
       setLoading(false);
     }
   };
+  
   useEffect(() => {
     fetchData();
   }, []);
+  
   const handleDataUpdate = () => {
     fetchData();
   };
+  
   const handleIscrittoAggiunto = (nuovoIscrittoConId) => {
+    // Aggiunge all'elenco completo per l'aggiornamento immediato
     setIscritti((prev) =>
       [...prev, nuovoIscrittoConId].sort((a, b) =>
         a.cognome.localeCompare(b.cognome)
       )
     );
   };
+  
+  const iscrittiAttivi = useMemo(() => iscritti.filter(i => i.stato === 'attivo'), [iscritti]);
+
+
   const notifications = useMemo(() => {
-    if (!iscritti) return [];
+    if (!iscrittiAttivi) return []; // Usa iscritti attivi per le notifiche
     const alerts = [];
     const oggi = new Date();
     oggi.setHours(0, 0, 0, 0);
     const dataLimiteCertificati = new Date();
     dataLimiteCertificati.setDate(oggi.getDate() + 30);
-    const abbonamentiScaduti = iscritti.filter(
+
+    const abbonamentiScaduti = iscrittiAttivi.filter(
       (i) => i.abbonamento?.scadenza && new Date(i.abbonamento.scadenza) < oggi
     );
-    const certificatiInScadenza = iscritti.filter((i) => {
+    
+    const certificatiInScadenza = iscrittiAttivi.filter((i) => {
       if (!i.certificatoMedico?.scadenza) return false;
       const scadenza = new Date(i.certificatoMedico.scadenza);
       return scadenza >= oggi && scadenza <= dataLimiteCertificati;
     });
-    const certificatiMancanti = iscritti.filter(
+
+    const certificatiMancanti = iscrittiAttivi.filter(
       (i) => !i.certificatoMedico?.presente || !i.certificatoMedico?.scadenza
     );
+    
     if (abbonamentiScaduti.length > 0)
       alerts.push({
         type: "abbonamenti_scaduti",
         count: abbonamentiScaduti.length,
         message: `${abbonamentiScaduti.length} Abbonamenti Scaduti`,
       });
+      
     if (certificatiInScadenza.length > 0)
       alerts.push({
         type: "certificati_scadenza",
         count: certificatiInScadenza.length,
         message: `${certificatiInScadenza.length} Certificati in Scadenza`,
       });
+      
     if (certificatiMancanti.length > 0)
       alerts.push({
         type: "certificati_mancanti",
         count: certificatiMancanti.length,
         message: `${certificatiMancanti.length} Certificati Mancanti`,
       });
+      
     return alerts;
   }, [iscritti]);
 
@@ -121,7 +141,7 @@ function MainApp() {
           path="/"
           element={
             <DashboardPage
-              iscritti={iscritti}
+              iscritti={iscrittiAttivi}
               loading={loading}
               gruppi={gruppi}
               pagamenti={pagamenti}
@@ -132,7 +152,7 @@ function MainApp() {
           path="/iscritti"
           element={
             <IscrittiPage
-              iscrittiList={iscritti}
+              iscrittiList={iscrittiAttivi}
               gruppiList={gruppi}
               onDataUpdate={handleDataUpdate}
               onIscrittoAdded={handleIscrittoAggiunto}
@@ -154,11 +174,12 @@ function MainApp() {
 
         <Route
           path="/gruppi"
-          element={<GruppiPage iscrittiList={iscritti} />}
+          element={<GruppiPage iscrittiList={iscrittiAttivi} />}
         />
         <Route
           path="/report"
-          element={<ReportPage pagamentiList={pagamenti} />}
+          // PASSA LA LISTA COMPLETA DI ISCRITTI (ATTIVI + ARCHIVIATI) per il report finanziario
+          element={<ReportPage pagamentiList={pagamenti} iscrittiList={iscritti} />}
         />
         <Route path="/orario" element={<OrarioPage />} />
         <Route path="/agenda" element={<AgendaPage />} />

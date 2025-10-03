@@ -1,3 +1,5 @@
+// File: src/components/AggiungiPagamentoDialog.jsx
+
 import React, { useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 
@@ -12,28 +14,45 @@ function AggiungiPagamentoDialog({ open, onClose, onSave, iscritto }) {
   const [cifra, setCifra] = useState('');
   const [tipoPagamento, setTipoPagamento] = useState('Quota Mensile');
   const [meseSelezionato, setMeseSelezionato] = useState(new Date().getMonth());
+  const [metodoPagamento, setMetodoPagamento] = useState('Contanti'); // NUOVO STATO
 
   const handleSave = () => {
     if (!cifra || isNaN(cifra) || cifra <= 0) {
       alert("Per favore, inserisci una cifra valida.");
       return;
     }
-    // Passiamo tutti i dati necessari alla funzione di salvataggio
+    // Passiamo tutti i dati necessari alla funzione di salvataggio, inclusa la nuova selezione
     onSave({
       cifra: parseFloat(cifra),
       tipo: tipoPagamento,
-      mese: tipoPagamento === 'Quota Mensile' ? meseSelezionato : null
+      mese: tipoPagamento === 'Quota Mensile' ? meseSelezionato : null,
+      metodoPagamento: metodoPagamento // NUOVO CAMPO
     });
     // Reset
     setCifra('');
     setTipoPagamento('Quota Mensile');
     setMeseSelezionato(new Date().getMonth());
+    setMetodoPagamento('Contanti');
   };
 
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>Nuovo Pagamento per {iscritto?.nome} {iscritto?.cognome}</DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}>
+        
+        {/* NUOVO SELETTORE METODO DI PAGAMENTO */}
+        <FormControl fullWidth margin="dense">
+          <InputLabel>Metodo di Pagamento</InputLabel>
+          <Select
+            label="Metodo di Pagamento"
+            value={metodoPagamento}
+            onChange={(e) => setMetodoPagamento(e.target.value)}
+          >
+            <MenuItem value="Contanti">Contanti</MenuItem>
+            <MenuItem value="Bonifico">Bonifico</MenuItem>
+          </Select>
+        </FormControl>
+
         <FormControl fullWidth margin="dense">
           <InputLabel>Tipo di Pagamento</InputLabel>
           <Select

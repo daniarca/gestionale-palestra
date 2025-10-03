@@ -62,7 +62,8 @@ function SchedaTecnicoPage() {
       const docRef = doc(db, "staff", tecnicoId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setTecnico({ id: docSnap.id, ...docSnap.data() });
+        const tecnicoData = { id: docSnap.id, ...docSnap.data() };
+        setTecnico(tecnicoData);
         const docs = await fetchTecnicoDocuments(tecnicoId);
         setDocumenti(docs);
       } else {
@@ -164,10 +165,10 @@ function SchedaTecnicoPage() {
         >
           <Box>
             <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-              {tecnico.nome} {tecnico.cognome}
+              {tecnico.nome || 'Nome Mancante'} {tecnico.cognome || 'Cognome Mancante'}
             </Typography>
             <Typography color="text.secondary" variant="h6">
-              {tecnico.ruolo}
+              {tecnico.ruolo || 'Ruolo N/D'}
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
@@ -251,9 +252,10 @@ function SchedaTecnicoPage() {
             <Grid item xs={12}>
               <Typography>
                 <strong>Residenza:</strong>{" "}
-                {`${tecnico.via || ""}, ${tecnico.cap || ""} ${
-                  tecnico.residenza || ""
-                } (${tecnico.provincia || ""})`}
+                {/* Residenza e indirizzo più robusti */}
+                {`${tecnico.via || "N/D"}${tecnico.via && tecnico.numeroCivico ? `, ${tecnico.numeroCivico}` : ''}, ${tecnico.cap || "N/D"} ${
+                  tecnico.residenza || "N/D"
+                } (${tecnico.provincia || "N/D"})`}
               </Typography>
             </Grid>
           </Grid>

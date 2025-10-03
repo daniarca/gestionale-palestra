@@ -1,3 +1,5 @@
+// File: src/pages/ReportPage.jsx
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from '../firebase.js';
@@ -14,20 +16,26 @@ import PaidIcon from '@mui/icons-material/Paid';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import moment from 'moment';
-import { exportToExcel } from '../utils/exportToExcel.js'; // Assicurati che il percorso sia corretto
+import { exportToExcel } from '../utils/exportToExcel.js';
+import { useNotification } from '../context/NotificationContext.jsx'; // Importa useNotification
 
+// Mesi in Italiano abbreviati per le colonne del report
 const MESI = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+// Colori per il Pie Chart (rilevanti dal tema)
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const generaAnniSportivi = () => {
+
+const generaAnniSportivi = (numAnni = 3) => {
     const annoCorrente = new Date().getFullYear();
     const meseCorrente = new Date().getMonth();
     const annoInizioCorrente = meseCorrente < 8 ? annoCorrente - 1 : annoCorrente;
     
-    return [
-      `${annoInizioCorrente - 1}/${annoInizioCorrente}`,
-      `${annoInizioCorrente}/${annoInizioCorrente + 1}`,
-      `${annoInizioCorrente + 1}/${annoInizioCorrente + 2}`,
-    ];
+    const anni = [];
+    for (let i = 0; i < numAnni; i++) {
+        const annoInizio = annoInizioCorrente - i;
+        anni.push(`${annoInizio}/${annoInizio + 1}`);
+    }
+    return anni.reverse(); // Returns sorted from old to new
 };
 
 function TabPanel(props) {
@@ -39,84 +47,104 @@ function TabPanel(props) {
     );
 }
 
-function ReportPage() {
+// AGGIUNGI iscrittiList TRA I PROPS
+function ReportPage({ pagamentiList, iscrittiList = [] }) {
   const [pagamenti, setPagamenti] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const theme = useTheme();
+  const { showNotification } = useNotification(); // Usa useNotification
   const [tabValue, setTabValue] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const anniDisponibili = useMemo(() => generaAnniSportivi(), []);
-  const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[1]);
-  
-  const chartColors = [
-      theme.palette.primary.main, 
-      theme.palette.info.main, 
-      theme.palette.success.main, 
-      theme.palette.secondary.main, 
-      theme.palette.warning.main, 
-      theme.palette.error.main
-  ];
+  const anniDisponibili = useMemo(() => generaAnniSportivi(5), []); // Genera più anni per una migliore selezione
+  // FIX: Imposta l'anno corrente (l'ultimo dell'array) come default
+  const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[anniDisponibili.length - 1]); 
 
+  // Usa i dati passati come prop per evitare fetch non necessarie e gestire il loading
   useEffect(() => {
-    const fetchPagamenti = async () => {
-      setLoading(true);
-      try {
-        const q = query(collection(db, "pagamenti"), orderBy("dataPagamento", "desc"));
-        const querySnapshot = await getDocs(q);
-        const pagamentiList = querySnapshot.docs.map(doc => doc.data());
-        setPagamenti(pagamentiList);
-      } catch (error) { console.error("Errore nel fetch dei pagamenti: ", error); } 
-      finally { setLoading(false); }
-    };
-    fetchPagamenti();
-  }, []);
+    setPagamenti(pagamentiList);
+    setLoading(false);
+  }, [pagamentiList]);
 
   const stats = useMemo(() => {
+    if (!pagamenti.length) return {
+        totaleIncassato: 0, 
+        incassoBonifico: 0, 
+        incassoContanti: 0,
+        incassoPerMese: [],
+        incassoPerTipo: [],
+        transazioniFiltrateUtente: [],
+    };
+    
     const [startYearStr, endYearStr] = annoSelezionato.split('/');
     const startYear = parseInt(startYearStr);
     
+    // Anno sportivo va da Settembre (mese 8) dell'anno di inizio a Giugno (mese 5) dell'anno di fine
     const inizioAnnoSportivo = moment().year(startYear).month(8).date(1).startOf('day'); 
     const fineAnnoSportivo = moment().year(parseInt(endYearStr)).month(5).date(30).endOf('day'); 
 
     const pagamentiAnnoSportivo = pagamenti.filter(p => {
         if (!p.dataPagamento) return false;
         const dataPagamento = moment(p.dataPagamento);
+        // La transazione deve ricadere nel periodo finanziario Set-Giu per il report annuale
         return dataPagamento.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]');
     });
 
-    const incassoPerMese = Array(12).fill(0);
+    // Aggregazione
+    let incassoTotale = 0;
+    let incassoBonifico = 0;
+    let incassoContanti = 0;
+    const incassoPerMeseMap = Array(12).fill(0); // 0-11 per Gen-Dic
+    const incassoPerTipoMap = {};
+
     pagamentiAnnoSportivo.forEach(p => {
-      const mese = moment(p.dataPagamento).month();
-      incassoPerMese[mese] += p.cifra;
+        const cifra = Number(p.cifra) || 0; // FIX: Conversione esplicita a Number
+        incassoTotale += cifra;
+
+        // Aggregazione per metodo di pagamento
+        if (p.metodoPagamento === 'Bonifico') {
+            incassoBonifico += cifra;
+        } else {
+            incassoContanti += cifra; // Contanti o N/D
+        }
+        
+        if (p.dataPagamento) {
+            const mese = moment(p.dataPagamento).month();
+            incassoPerMeseMap[mese] += cifra;
+        }
+        
+        const tipo = p.tipo || 'Altro';
+        incassoPerTipoMap[tipo] = (incassoPerTipoMap[tipo] || 0) + cifra;
     });
 
-    let datiGraficoBarre = MESI.map((mese, index) => ({ name: mese, Incasso: incassoPerMese[index] }));
-    
-    const order = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7]; 
-    datiGraficoBarre = order.map(i => datiGraficoBarre[i]);
-
-    const incassoPerTipo = pagamentiAnnoSportivo.reduce((acc, p) => {
-      const tipo = p.tipo || 'Altro';
-      acc[tipo] = (acc[tipo] || 0) + p.cifra;
-      return acc;
-    }, {});
-    const datiGraficoTorta = Object.keys(incassoPerTipo).map(key => ({ name: key, value: incassoPerTipo[key] }));
-
-    const incassoTotaleStorico = pagamenti.reduce((sum, p) => sum + p.cifra, 0);
-    const incassoAnnoSelezionato = pagamentiAnnoSportivo.reduce((sum, p) => sum + p.cifra, 0);
+    const incassoAnnoSelezionato = incassoTotale;
     const numTransazioniAnno = pagamentiAnnoSportivo.length;
     
+    // Dati Grafico Barre (Ordiniamo Set-Giu)
+    const mesiAnnoSportivo = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
+    const datiGraficoBarre = mesiAnnoSportivo.map(monthIndex => ({
+        name: MESI[monthIndex],
+        Incasso: incassoPerMeseMap[monthIndex]
+    }));
+
+    const datiGraficoTorta = Object.keys(incassoPerTipoMap).map(key => ({ 
+        name: key, 
+        value: incassoPerTipoMap[key] 
+    }));
+
     const lowerSearchTerm = searchTerm.toLowerCase();
     const transazioniFiltrateUtente = pagamentiAnnoSportivo
-        .filter(p => p.iscrittoNome.toLowerCase().includes(lowerSearchTerm));
+        .filter(p => p.iscrittoNome.toLowerCase().includes(lowerSearchTerm) || (p.metodoPagamento || '').toLowerCase().includes(lowerSearchTerm))
+        .sort((a, b) => moment(b.dataPagamento).valueOf() - moment(a.dataPagamento).valueOf());
 
     return { 
-        incassoTotaleStorico, 
+        incassoTotaleStorico: pagamenti.reduce((sum, p) => sum + (Number(p.cifra) || 0), 0),
         incassoAnnoSelezionato, 
         numTransazioniAnno,
+        incassoBonifico,
+        incassoContanti,
         datiGraficoBarre, 
         datiGraficoTorta,
         transazioniFiltrateUtente,
@@ -136,17 +164,124 @@ function ReportPage() {
     setPage(0);
   };
 
-  const handleExport = () => {
+  const handleExportTransactions = () => {
     if (stats.transazioniFiltrateUtente.length > 0) {
         const dataToExport = stats.transazioniFiltrateUtente.map(p => ({
             'Data': moment(p.dataPagamento).format('DD/MM/YYYY'),
             'Atleta': p.iscrittoNome,
             'Tipo': p.tipo,
+            'Metodo': p.metodoPagamento || 'N/D',
             'Sede': p.sede,
             'Importo': p.cifra,
         }));
-        exportToExcel(dataToExport, `Report_Pagamenti_${annoSelezionato.replace('/', '-')}`);
+        exportToExcel(dataToExport, `Report_Transazioni_${annoSelezionato.replace('/', '-')}`, true);
+        showNotification("Report Transazioni esportato in Excel!", "success");
+    } else {
+         showNotification("Nessuna transazione da esportare.", "warning");
     }
+  };
+
+  // NUOVA FUNZIONE PER L'EXPORT BONIFICO (MATRICE)
+  const handleExportBonifico = () => {
+    if (iscrittiList.length === 0 || pagamenti.length === 0) {
+        showNotification("Dati insufficienti per il report bonifici.", "warning");
+        return;
+    }
+
+    const [startYearStr, endYearStr] = annoSelezionato.split('/');
+    const startYear = parseInt(startYearStr);
+    
+    // Colonne del report a matrice (Iscrizione + Mesi dell'anno sportivo)
+    const colonneMesi = ["Iscrizione", ...MESI.slice(8), ...MESI.slice(0, 6)]; // Iscrizione, Set, Ott, ..., Giu
+
+    // 1. Filtra solo i pagamenti dell'anno sportivo selezionato E con metodo Bonifico
+    const pagamentiBonifico = pagamenti.filter(p => {
+        if (p.metodoPagamento !== 'Bonifico') return false; 
+        if (!p.dataPagamento) return false;
+        
+        const dataPagamento = moment(p.dataPagamento);
+        const annoPagamento = dataPagamento.year();
+        const mesePagamento = dataPagamento.month();
+
+        // Controllo l'anno sportivo (dal mese 8 dell'anno di inizio al mese 5 dell'anno di fine)
+        const isSettembreDicembre = mesePagamento >= 8 && mesePagamento <= 11 && annoPagamento === startYear;
+        const isGennaioGiugno = mesePagamento >= 0 && mesePagamento <= 5 && annoPagamento === parseInt(endYearStr);
+
+        // La logica si basa sul mese di riferimento (meseRiferimento) PER CAPIRE A QUALE ANNO SPETTA
+        // Ma, come scoperto, il filtro deve usare la data di pagamento (dataPagamento).
+        // Se il filtro per data di pagamento (isBetween inizio e fine anno sportivo) è soddisfatto,
+        // E il metodo è Bonifico, allora il pagamento è da includere.
+
+        // Per il report a matrice, la logica deve includere i pagamenti la cui data di pagamento ricade
+        // nell'anno sportivo corretto *oppure* sono pagamenti anticipati per mesi dell'anno sportivo.
+        // Manteniamo la logica semplice: l'aggregazione per colonna (Dic) risolve il problema.
+        
+        // Usiamo la stessa logica di data per la coerenza del report: solo pagamenti la cui data ricade nell'anno sportivo.
+        const inizioAnnoSportivo = moment().year(startYear).month(8).date(1).startOf('day'); 
+        const fineAnnoSportivo = moment().year(parseInt(endYearStr)).month(5).date(30).endOf('day'); 
+        
+        return dataPagamento.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]');
+    });
+
+    // 2. Aggrega i pagamenti per iscritto e per colonna (Mese/Iscrizione)
+    const datiAggregati = {};
+    pagamentiBonifico.forEach(p => {
+        const iscrittoId = p.iscrittoId;
+        const tipoPagamento = p.tipo || ''; 
+        let colonna = '';
+        const cifra = Number(p.cifra) || 0; // FIX: Conversione esplicita a Number
+
+        if (tipoPagamento.toLowerCase().includes('iscrizione')) {
+            colonna = 'Iscrizione';
+        } else if (tipoPagamento.toLowerCase().includes('mensile') && p.meseRiferimento != null) {
+            colonna = MESI[p.meseRiferimento];
+        } else {
+             return; 
+        }
+
+        if (!datiAggregati[iscrittoId]) {
+            datiAggregati[iscrittoId] = {
+                iscrittoNome: p.iscrittoNome,
+                ...colonneMesi.reduce((acc, mese) => ({...acc, [mese]: 0}), {})
+            };
+        }
+        
+        // Somma le cifre per la colonna
+        datiAggregati[iscrittoId][colonna] += cifra;
+    });
+
+    // 3. Crea il Report Finale con tutti gli iscritti (attivi + archiviati)
+    const reportFinale = iscrittiList
+        .sort((a, b) => a.cognome.localeCompare(b.cognome))
+        .map(iscritto => {
+            const rowData = datiAggregati[iscritto.id] || {};
+            
+            // Calcola il totale bonifico per l'anno sportivo
+            const totaleBonifico = colonneMesi.reduce((sum, col) => sum + (rowData[col] || 0), 0);
+            
+            // Crea la riga del report formattata per l'export
+            const formattedRow = {
+                'COGNOME': iscritto.cognome,
+                'NOME': iscritto.nome,
+                // Aggiunge le colonne Iscrizione e Mesi con i totali
+                ...colonneMesi.reduce((acc, mese) => ({
+                    ...acc,
+                    [mese]: rowData[mese] ? rowData[mese].toFixed(2) : 0, 
+                }), {}),
+                'TOTALE BONIFICO': totaleBonifico.toFixed(2)
+            };
+            
+            return formattedRow;
+        });
+
+
+    if (reportFinale.length === 0) {
+        showNotification("Nessun iscritto trovato per la lista.", "warning");
+        return;
+    }
+    
+    exportToExcel(reportFinale, `Report_Bonifici_Matrix_${annoSelezionato.replace('/', '-')}`, true);
+    showNotification("Report Bonifici esportato in Excel!", "success");
   };
 
   if (loading) {
@@ -192,18 +327,18 @@ function ReportPage() {
             </Grid>
             <Grid item xs={12} sm={4}>
               <StatCard 
-                title={`Incasso Anno ${annoSelezionato}`} 
-                value={`${stats.incassoAnnoSelezionato.toFixed(2)}€`} 
+                title={`Incasso Bonifico ${annoSelezionato}`} 
+                value={`${stats.incassoBonifico.toFixed(2)}€`} 
                 icon={<AttachMoneyIcon />} 
                 color={theme.palette.primary.main} 
               />
             </Grid>
             <Grid item xs={12} sm={4}>
               <StatCard 
-                title={`Transazioni Anno ${annoSelezionato}`} 
-                value={stats.numTransazioniAnno} 
+                title={`Incasso Contanti ${annoSelezionato}`} 
+                value={`${stats.incassoContanti.toFixed(2)}€`} 
                 icon={<ReceiptIcon />} 
-                color={theme.palette.info.main} 
+                color={theme.palette.warning.main} 
               />
             </Grid>
           </Grid>
@@ -230,10 +365,10 @@ function ReportPage() {
                   <PieChart>
                     <Pie data={stats.datiGraficoTorta} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                       {stats.datiGraficoTorta.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: theme.palette.background.paper, border: '1px solid ' + theme.palette.divider }}/>
+                    <Tooltip formatter={(value) => [`${value.toFixed(2)}€`, 'Importo']}/>
                     <Legend layout="vertical" align="right" verticalAlign="middle" />
                   </PieChart>
                 </ResponsiveContainer>
@@ -247,7 +382,7 @@ function ReportPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                   <TextField
                       sx={{ flexGrow: 1, minWidth: '250px' }}
-                      placeholder="Cerca per nome o cognome del socio..."
+                      placeholder="Cerca per nome, tipo o metodo di pagamento..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       InputProps={{
@@ -258,14 +393,25 @@ function ReportPage() {
                           ),
                       }}
                   />
-                  <Button
-                      variant="contained"
-                      startIcon={<DownloadIcon />}
-                      onClick={handleExport}
-                      disabled={stats.transazioniFiltrateUtente.length === 0}
-                  >
-                      Esporta in Excel
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        onClick={handleExportTransactions}
+                        disabled={stats.transazioniFiltrateUtente.length === 0}
+                    >
+                        Esporta Transazioni (Lista)
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<DownloadIcon />}
+                        onClick={handleExportBonifico}
+                        disabled={iscrittiList.length === 0}
+                    >
+                        Export Bonifico (Matrice)
+                    </Button>
+                  </Box>
               </Box>
 
               <TableContainer>
@@ -276,6 +422,7 @@ function ReportPage() {
                               <TableCell>Atleta</TableCell>
                               <TableCell>Tipo</TableCell>
                               <TableCell>Sede</TableCell>
+                              <TableCell>Metodo</TableCell> {/* NUOVA COLONNA */}
                               <TableCell align="right">Importo</TableCell>
                           </TableRow>
                       </TableHead>
@@ -287,12 +434,13 @@ function ReportPage() {
                                       <TableCell>{p.iscrittoNome}</TableCell>
                                       <TableCell>{p.tipo}</TableCell>
                                       <TableCell>{p.sede}</TableCell>
-                                      <TableCell align="right">{p.cifra.toFixed(2)}€</TableCell>
+                                      <TableCell>{p.metodoPagamento || 'N/D'}</TableCell> {/* NUOVA CELLA */}
+                                      <TableCell align="right">{Number(p.cifra).toFixed(2)}€</TableCell>
                                   </TableRow>
                               ))
                           ) : (
                               <TableRow>
-                                  <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                                  <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
                                       <Typography color="text.secondary">
                                           Nessuna transazione trovata per i criteri selezionati.
                                       </Typography>

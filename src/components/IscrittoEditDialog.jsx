@@ -22,6 +22,8 @@ import {
 // Nuove costanti per Livelli e Categorie
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
 const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"]; // CORREZIONE: Microbaby -> Baby
+// NUOVA COSTANTE PER I TIPI DI CELLULARE
+const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
 
 function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
   const [formData, setFormData] = useState({});
@@ -37,6 +39,13 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         // Nuovi campi
         livello: iscritto.livello || "",
         categoria: iscritto.categoria || "",
+        // INIZIO NUOVI CAMPI CELLULARE
+        // Fallback per vecchi dati che avevano solo 'cellulare'
+        cellulare1: iscritto.cellulare1 || iscritto.cellulare || "", 
+        cellulare1Tipo: iscritto.cellulare1Tipo || "Mamma",
+        cellulare2: iscritto.cellulare2 || "",
+        cellulare2Tipo: iscritto.cellulare2Tipo || "",
+        // FINE NUOVI CAMPI CELLULARE
       });
     }
   }, [iscritto, open]);
@@ -57,8 +66,18 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       scadenzaAbbonamento,
       livello,
       categoria,
+      cellulare, // Rimuovi il vecchio campo 'cellulare'
+      cellulare1,
+      cellulare1Tipo,
+      cellulare2,
+      cellulare2Tipo,
       ...rest
     } = formData;
+    
+    // Logica per non salvare campi cellulare vuoti
+    const finalCellulare2 = cellulare2 || null;
+    const finalCellulare2Tipo = finalCellulare2 ? (cellulare2Tipo || "Altro") : null;
+    
     const dataToSave = {
       ...rest,
       certificatoMedico: {
@@ -66,8 +85,13 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         scadenza: scadenzaCertificato,
       },
       abbonamento: { scadenza: scadenzaAbbonamento },
-      livello, // Salva il nuovo campo
-      categoria, // Salva il nuovo campo
+      livello, 
+      categoria,
+      // SALVA NUOVI CAMPI
+      cellulare1,
+      cellulare1Tipo,
+      cellulare2: finalCellulare2,
+      cellulare2Tipo: finalCellulare2Tipo,
     };
     onSave(dataToSave);
   };
@@ -210,16 +234,70 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              
+              {/* INIZIO NUOVI CAMPI CELLULARE 1 */}
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   margin="dense"
-                  name="cellulare"
-                  label="Cellulare"
-                  value={formData.cellulare || ""}
+                  name="cellulare1"
+                  label="Cellulare 1"
+                  value={formData.cellulare1 || ""}
                   onChange={handleChange}
                 />
               </Grid>
+              <Grid item xs={12} sm={2}>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel shrink={true}>Tipo 1</InputLabel>
+                  <Select
+                    name="cellulare1Tipo"
+                    label="Tipo 1"
+                    value={formData.cellulare1Tipo || "Mamma"}
+                    onChange={handleChange}
+                  >
+                    {TIPI_CELLULARE.map((tipo) => (
+                      <MenuItem key={tipo} value={tipo}>
+                        {tipo}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* FINE NUOVI CAMPI CELLULARE 1 */}
+              
+              {/* INIZIO NUOVI CAMPI CELLULARE 2 */}
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="cellulare2"
+                  label="Cellulare 2 (Opzionale)"
+                  value={formData.cellulare2 || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel shrink={true}>Tipo 2</InputLabel>
+                  <Select
+                    name="cellulare2Tipo"
+                    label="Tipo 2"
+                    value={formData.cellulare2Tipo || ""}
+                    onChange={handleChange}
+                    displayEmpty
+                  >
+                     <MenuItem value="">
+                        <em>N/D</em>
+                      </MenuItem>
+                    {TIPI_CELLULARE.map((tipo) => (
+                      <MenuItem key={tipo} value={tipo}>
+                        {tipo}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* FINE NUOVI CAMPI CELLULARE 2 */}
             </Grid>
           </Grid>
 
