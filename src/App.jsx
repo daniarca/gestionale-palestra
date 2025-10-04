@@ -19,7 +19,8 @@ import SchedaSocioPage from "./pages/SchedaSocioPage.jsx";
 import SchedaTecnicoPage from "./pages/SchedaTecnicoPage.jsx";
 import Notifier from "./components/Notifier.jsx";
 import DocumentazionePage from "./pages/DocumentazionePage.jsx";
-import CreditsPage from "./pages/CreditsPage.jsx"; // <-- 1. IMPORTA LA NUOVA PAGINA
+import CreditsPage from "./pages/CreditsPage.jsx";
+import RegistroTecniciPage from "./pages/RegistroTecniciPage.jsx"; // Assicurati che l'import sia presente
 import "./App.css";
 
 function MainApp() {
@@ -32,43 +33,24 @@ function MainApp() {
 
   const fetchData = async () => {
     try {
-      if (refreshKey === 0) {
-        setLoading(true);
-      }
-
-      const iscrittiAttiviQuery = query(
-        collection(db, "iscritti"),
-        where("stato", "==", "attivo")
-      );
-      const allIscrittiQuery = query(collection(db, "iscritti"));
+      if (refreshKey === 0) setLoading(true);
+      
+      const allIscrittiQuery = query(collection(db, "iscritti")); 
       const gruppiQuery = query(collection(db, "gruppi"));
-      const pagamentiQuery = query(
-        collection(db, "pagamenti"),
-        orderBy("dataPagamento", "desc")
-      );
+      const pagamentiQuery = query(collection(db, "pagamenti"), orderBy("dataPagamento", "desc"));
       const staffQuery = query(collection(db, "staff"));
 
-      const [
-        iscrittiAttiviSnap,
-        allIscrittiSnap,
-        gruppiSnap,
-        pagamentiSnap,
-        staffSnap,
-      ] = await Promise.all([
-        getDocs(iscrittiAttiviQuery),
-        getDocs(allIscrittiQuery),
-        getDocs(gruppiQuery),
-        getDocs(pagamentiQuery),
-        getDocs(staffQuery),
-      ]);
+      const [allIscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
+        await Promise.all([
+          getDocs(allIscrittiQuery),
+          getDocs(gruppiQuery),
+          getDocs(pagamentiQuery),
+          getDocs(staffQuery),
+        ]);
 
-      setIscritti(
-        allIscrittiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
+      setIscritti(allIscrittiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setGruppi(gruppiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-      setPagamenti(
-        pagamentiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
+      setPagamenti(pagamentiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setStaff(staffSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.error("Errore nel recupero dei dati principali:", error);
@@ -76,28 +58,17 @@ function MainApp() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [refreshKey]);
-
-  const handleDataUpdate = () => {
-    setRefreshKey((prevKey) => prevKey + 1);
-  };
-
+  
+  useEffect(() => { fetchData(); }, [refreshKey]);
+  
+  const handleDataUpdate = () => setRefreshKey(prevKey => prevKey + 1);
+  
   const handleIscrittoAggiunto = (nuovoIscrittoConId) => {
-    setIscritti((prev) =>
-      [...prev, nuovoIscrittoConId].sort((a, b) =>
-        a.cognome.localeCompare(b.cognome)
-      )
-    );
+    setIscritti((prev) => [...prev, nuovoIscrittoConId].sort((a, b) => a.cognome.localeCompare(b.cognome)));
     handleDataUpdate();
   };
-
-  const iscrittiAttivi = useMemo(
-    () => iscritti.filter((i) => i.stato === "attivo"),
-    [iscritti]
-  );
+  
+  const iscrittiAttivi = useMemo(() => iscritti.filter(i => i.stato === 'attivo'), [iscritti]);
 
   const notifications = useMemo(() => {
     // ... logica notifiche (invariata)
@@ -119,76 +90,30 @@ function MainApp() {
       (i) => !i.certificatoMedico?.presente || !i.certificatoMedico?.scadenza
     );
     if (abbonamentiScaduti.length > 0)
-      alerts.push({
-        type: "abbonamenti_scaduti",
-        count: abbonamentiScaduti.length,
-        message: `${abbonamentiScaduti.length} Abbonamenti Scaduti`,
-      });
+      alerts.push({type: "abbonamenti_scaduti", count: abbonamentiScaduti.length, message: `${abbonamentiScaduti.length} Abbonamenti Scaduti`});
     if (certificatiInScadenza.length > 0)
-      alerts.push({
-        type: "certificati_scadenza",
-        count: certificatiInScadenza.length,
-        message: `${certificatiInScadenza.length} Certificati in Scadenza`,
-      });
+      alerts.push({type: "certificati_scadenza", count: certificatiInScadenza.length, message: `${certificatiInScadenza.length} Certificati in Scadenza`});
     if (certificatiMancanti.length > 0)
-      alerts.push({
-        type: "certificati_mancanti",
-        count: certificatiMancanti.length,
-        message: `${certificatiMancanti.length} Certificati Mancanti`,
-      });
+      alerts.push({type: "certificati_mancanti", count: certificatiMancanti.length, message: `${certificatiMancanti.length} Certificati Mancanti`});
     return alerts;
   }, [iscritti]);
 
   return (
     <Layout notifications={notifications}>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <DashboardPage
-              iscritti={iscrittiAttivi}
-              loading={loading}
-              gruppi={gruppi}
-              pagamenti={pagamenti}
-            />
-          }
-        />
-        <Route
-          path="/iscritti"
-          element={
-            <IscrittiPage
-              iscrittiList={iscrittiAttivi}
-              gruppiList={gruppi}
-              onDataUpdate={handleDataUpdate}
-              onIscrittoAdded={handleIscrittoAggiunto}
-            />
-          }
-        />
-        <Route
-          path="/iscritti/:iscrittoId"
-          element={<SchedaSocioPage onDataUpdate={handleDataUpdate} />}
-        />
-        <Route
-          path="/archivio"
-          element={<ArchivioPage onDataUpdate={handleDataUpdate} />}
-        />
-        <Route path="/tecnici" element={<TecniciPage />} />
-        <Route path="/tecnici/:tecnicoId" element={<SchedaTecnicoPage />} />
-        <Route
-          path="/gruppi"
-          element={<GruppiPage iscrittiList={iscrittiAttivi} />}
-        />
-        <Route
-          path="/report"
-          element={
-            <ReportPage pagamentiList={pagamenti} iscrittiList={iscritti} />
-          }
-        />
-        <Route path="/orario" element={<OrarioPage />} />
-        <Route path="/agenda" element={<AgendaPage />} />
-        <Route path="/documentazione" element={<DocumentazionePage />} />
-        <Route path="/credits" element={<CreditsPage />} />{" "}
-        {/* <-- 2. AGGIUNGI LA ROTTA */}
+        <Route path="/" element={<DashboardPage iscritti={iscrittiAttivi} loading={loading} gruppi={gruppi} pagamenti={pagamenti}/>}/>
+        <Route path="/iscritti" element={<IscrittiPage iscrittiList={iscrittiAttivi} gruppiList={gruppi} onDataUpdate={handleDataUpdate} onIscrittoAdded={handleIscrittoAggiunto}/>}/>
+        <Route path="/iscritti/:iscrittoId" element={<SchedaSocioPage onDataUpdate={handleDataUpdate} />}/>
+        <Route path="/archivio" element={<ArchivioPage onDataUpdate={handleDataUpdate} />}/>
+        <Route path="/tecnici" element={<TecniciPage />}/>
+        <Route path="/tecnici/:tecnicoId" element={<SchedaTecnicoPage />}/>
+        <Route path="/gruppi" element={<GruppiPage iscrittiList={iscrittiAttivi} />}/>
+        <Route path="/report" element={<ReportPage pagamentiList={pagamenti} iscrittiList={iscritti} />}/>
+        <Route path="/orario" element={<OrarioPage />}/>
+        <Route path="/agenda" element={<AgendaPage />}/>
+        <Route path="/documentazione" element={<DocumentazionePage />}/>
+        <Route path="/credits" element={<CreditsPage />} />
+        <Route path="/registro-tecnici" element={<RegistroTecniciPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>
@@ -201,10 +126,7 @@ function App() {
     <>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/*"
-          element={currentUser ? <MainApp /> : <Navigate to="/login" />}
-        />
+        <Route path="/*" element={currentUser ? <MainApp /> : <Navigate to="/login" />}/>
       </Routes>
       <Notifier />
     </>

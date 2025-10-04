@@ -38,9 +38,12 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import packageJson from "../../package.json";
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 
 const drawerWidth = 280;
 
+// --- INIZIO CORREZIONE ---
+// Aggiunta la riga mancante per il Registro Tecnici
 const navSections = [
   {
     title: "Gestione Generale",
@@ -56,6 +59,7 @@ const navSections = [
       { text: "Iscritti", path: "/iscritti", icon: <PeopleIcon /> },
       { text: "Gruppi", path: "/gruppi", icon: <GroupsIcon /> },
       { text: "Tecnici", path: "/tecnici", icon: <BadgeIcon /> },
+      { text: "Registro Tecnici", path: "/registro-tecnici", icon: <PeopleAltIcon /> },
       { text: "Archivio", path: "/archivio", icon: <ArchivioIcon /> },
     ],
   },
@@ -66,6 +70,7 @@ const navSections = [
     ],
   },
 ];
+// --- FINE CORREZIONE ---
 
 function Layout({ children, notifications = [] }) {
   const { currentUser } = useAuth();

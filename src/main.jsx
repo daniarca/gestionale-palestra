@@ -13,7 +13,10 @@ import { ThemeProviderWrapper } from './context/ThemeContext.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    {/* --- INIZIO CORREZIONE --- */}
+    {/* Aggiungiamo la prop 'basename' per specificare la sottocartella */}
+    <BrowserRouter basename="/gestionale">
+    {/* --- FINE CORREZIONE --- */}
       <AuthProvider>
         <NotificationProvider>
           <ThemeProviderWrapper>

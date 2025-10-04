@@ -10,7 +10,7 @@ import {
   addDoc,
   deleteDoc,
   orderBy,
-  Timestamp,
+  Timestamp, // Assicurati che Timestamp sia importato
 } from "firebase/firestore";
 import {
   ref,
@@ -106,8 +106,6 @@ export const fetchTecnici = async () => {
     id: doc.id,
     ...doc.data(),
   }));
-
-  // Ordiniamo i dati qui, nel codice, in modo sicuro.
   return tecniciList.sort((a, b) => {
     const cognomeA = a.cognome || "";
     const cognomeB = b.cognome || "";
@@ -176,29 +174,15 @@ export const uploadTecnicoFile = async (file, tecnicoId) => {
   const docRef = await addDoc(collection(db, TECNICI_DOCS_COLLECTION), docData);
   return { id: docRef.id, ...docData };
 };
-
-// FIX QUI: RIMOSSO ORDERBY DA FIRESTORE E AGGIUNTO L'ORDINAMENTO LATO CLIENT
 export const fetchTecnicoDocuments = async (tecnicoId) => {
   const q = query(
     collection(db, TECNICI_DOCS_COLLECTION),
-    where("tecnicoId", "==", tecnicoId)
-    // RIMOSSO: orderBy("createdAt", "desc")
+    where("tecnicoId", "==", tecnicoId),
+    orderBy("createdAt", "desc")
   );
   const querySnapshot = await getDocs(q);
-
-  const docsList = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  // Ordina localmente per data di creazione discendente per evitare l'errore di indice
-  return docsList.sort((a, b) => {
-    const dateA = a.createdAt?.toDate()?.getTime() || 0;
-    const dateB = b.createdAt?.toDate()?.getTime() || 0;
-    return dateB - dateA; // Ordine discendente (più recenti prima)
-  });
+  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
-
 export const deleteTecnicoFile = async (docId, filePath) => {
   const fileRef = ref(storage, filePath);
   await deleteObject(fileRef);
@@ -241,4 +225,48 @@ export const updateAgendaEvent = async (updatedEvent) => {
 };
 export const deleteAgendaEvent = async (eventId) => {
   await deleteDoc(doc(db, "agendaEvents", eventId));
+};
+
+// --- SERVIZI PER REGISTRO PRESENZE TECNICI ---
+const PRESENZE_COLLECTION = "presenzeTecnici";
+
+const formatPresenzaFromFirestore = (doc) => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    start: data.start.toDate().toISOString(),
+    end: data.end ? data.end.toDate().toISOString() : null,
+  };
+};
+
+const formatPresenzaForFirestore = (eventData) => {
+  const { id, ...data } = eventData;
+  return {
+    ...data,
+    start: Timestamp.fromDate(new Date(data.start)),
+    end: data.end ? Timestamp.fromDate(new Date(data.end)) : Timestamp.fromDate(new Date(data.start)), // Assicura che end esista
+  };
+};
+
+export const fetchPresenzeTecnici = async () => {
+  const q = query(collection(db, PRESENZE_COLLECTION));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(formatPresenzaFromFirestore);
+};
+
+export const addPresenzaTecnico = async (newEvent) => {
+  const dataToSave = formatPresenzaForFirestore(newEvent);
+  await addDoc(collection(db, PRESENZE_COLLECTION), dataToSave);
+};
+
+export const updatePresenzaTecnico = async (updatedEvent) => {
+  const { id, ...data } = updatedEvent;
+  const dataToSave = formatPresenzaForFirestore(data);
+  const eventRef = doc(db, PRESENZE_COLLECTION, id);
+  await updateDoc(eventRef, dataToSave);
+};
+
+export const deletePresenzaTecnico = async (eventId) => {
+  await deleteDoc(doc(db, PRESENZE_COLLECTION, eventId));
 };
