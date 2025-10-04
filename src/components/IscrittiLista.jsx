@@ -210,11 +210,13 @@ function ListItemRow({ iscritto, isSelected, onSelect, activeFilter }) {
             size="small"
             sx={{ width: 180, fontWeight: "bold" }}
           />
+          {/* --- INIZIO CORREZIONE --- */}
           <Checkbox
             edge="end"
             checked={isSelected}
-            onChange={handleCheckboxClick}
+            onClick={handleCheckboxClick} // Sostituito onChange con onClick per poter fermare la propagazione del click
           />
+          {/* --- FINE CORREZIONE --- */}
         </Stack>
       }
       sx={{
