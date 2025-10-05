@@ -1,4 +1,4 @@
-// File: src/pages/CreditsPage.jsx (Versione Custom)
+// File: src/pages/CreditsPage.jsx (AGGIORNATO)
 
 import React from "react";
 import {
@@ -26,6 +26,23 @@ import CodeIcon from '@mui/icons-material/Code';
 import LanguageIcon from '@mui/icons-material/Language'; // Icona per il sito web
 
 const updateLog = [
+    {
+    version: "0.9.19",
+    date: "05/10/2025",
+    changes: [
+      { type: 'IMPROVEMENT', text: "Ridisegnata completamente la sezione 'Riepilogo Finanziario' della Dashboard per una maggiore chiarezza, separando nettamente i dati Annuali e Mensili in due riquadri distinti (prima riga)." },
+      { type: 'IMPROVEMENT', text: "Riorganizzato il layout principale della Dashboard spostando 'Attività Giornaliere', 'Scadenze' e 'Ultimi Pagamenti' sulla stessa riga (3 colonne)." },
+    ]
+  },
+    {
+    version: "0.9.18",
+    date: "05/10/2025",
+    changes: [
+      { type: 'NEW', text: "Aggiunta la Paga Oraria per i tecnici e calcolo automatico del costo mensile/annuale nel 'Registro Presenze Tecnici'." },
+      { type: 'IMPROVEMENT', text: "Ridisegnata l'interfaccia del riepilogo del Registro Tecnici per garantire un layout stabile (anti-shift) e pulito." },
+      { type: 'FIX', text: "Risolto il problema del fastidioso bordo di focus (outline) sui pulsanti e sui ToggleButton in tutta l'applicazione." },
+    ]
+  },
    {
     version: "0.9.17",
     date: "04/10/2025",

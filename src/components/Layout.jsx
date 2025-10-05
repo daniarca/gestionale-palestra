@@ -1,4 +1,4 @@
-// File: src/components/Layout.jsx
+// File: src/components/Layout.jsx (AGGIORNATO)
 
 import React, { useState } from "react";
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
@@ -39,6 +39,7 @@ import { auth } from "../firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import packageJson from "../../package.json";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import logoImage from "../assets/logo.png"; // LOGO
 
 const drawerWidth = 280;
 
@@ -103,7 +104,41 @@ function Layout({ children, notifications = [] }) {
 
   const drawerContent = (
     <>
-      <Toolbar />
+      {/* HEADER CON LOGO (NUOVA IMPLEMENTAZIONE) */}
+      <Toolbar 
+          sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              py: 2, 
+              minHeight: '64px !important',
+              borderBottom: `1px solid ${theme.palette.divider}`, // Aggiunto divider
+          }}
+      >
+          <Box 
+              component={RouterLink} 
+              to="/" 
+              sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+          >
+              <Box 
+                  component="img" 
+                  src={logoImage} 
+                  alt="ASD GYM POINT Logo" 
+                  sx={{ width: 40, height: 40, mr: 1 }}
+              />
+              <Typography 
+                  variant="h6" 
+                  sx={{ 
+                      fontWeight: "bold", 
+                      color: "primary.main",
+                      fontSize: '1.25rem',
+                      lineHeight: 1.2
+                  }}
+              >
+                  ASD GYM POINT
+              </Typography>
+          </Box>
+      </Toolbar>
       <Box sx={{ overflow: "auto", p: 1 }}>
         {navSections.map((section, index) => (
           <Box key={section.title} sx={{ mb: 2, pt: index === 0 ? 0 : 1 }}>
@@ -210,14 +245,28 @@ function Layout({ children, notifications = [] }) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ fontWeight: "bold", color: "primary.main" }}
-          >
-            ASD GYM POINT
-          </Typography>
+          
+          {/* START: Aggiunta Logo vicino al nome (sostituendo la Typography precedente) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+                component="img"
+                src={logoImage}
+                alt="Logo ASD GYM POINT"
+                sx={{
+                    height: 36, // Altezza desiderata per il logo
+                    display: { xs: 'none', sm: 'block' }, // Mostra solo su schermi più grandi
+                }}
+            />
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ fontWeight: "bold", color: "primary.main" }}
+            >
+              ASD GYM POINT
+            </Typography>
+          </Box>
+          {/* END: Aggiunta Logo vicino al nome */}
 
           {/* Box invisibile per spingere tutto a destra */}
           <Box sx={{ flexGrow: 1 }} />
@@ -317,7 +366,7 @@ function Layout({ children, notifications = [] }) {
           p: 3,
           width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
           maxWidth: isOrarioPage ? "none" : "1400px",
-          margin: isOrarioPage ? "0" : "0 auto",
+          margin: "0", // FIX: Rimosso margin: 0 auto per la corretta espansione laterale
         }}
       >
         <Toolbar />

@@ -1,4 +1,4 @@
-// File: src/App.jsx
+// File: src/App.jsx (AGGIORNATO)
 
 import { useState, useEffect, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -21,6 +21,7 @@ import Notifier from "./components/Notifier.jsx";
 import DocumentazionePage from "./pages/DocumentazionePage.jsx";
 import CreditsPage from "./pages/CreditsPage.jsx";
 import RegistroTecniciPage from "./pages/RegistroTecniciPage.jsx"; // Assicurati che l'import sia presente
+import { fetchPresenzeTecnici, fetchAgendaEvents } from "./services/firebaseService.js";
 import "./App.css";
 
 function MainApp() {
@@ -28,6 +29,8 @@ function MainApp() {
   const [gruppi, setGruppi] = useState([]);
   const [pagamenti, setPagamenti] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [agendaEvents, setAgendaEvents] = useState([]); 
+  const [presenzeTecnici, setPresenzeTecnici] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -40,18 +43,23 @@ function MainApp() {
       const pagamentiQuery = query(collection(db, "pagamenti"), orderBy("dataPagamento", "desc"));
       const staffQuery = query(collection(db, "staff"));
 
-      const [allIscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap] =
+      const [allIscrittiSnap, gruppiSnap, pagamentiSnap, staffSnap, agendaEventsList, presenzeTecniciList] =
         await Promise.all([
           getDocs(allIscrittiQuery),
           getDocs(gruppiQuery),
           getDocs(pagamentiQuery),
           getDocs(staffQuery),
+          fetchAgendaEvents(), 
+          fetchPresenzeTecnici(), 
         ]);
 
       setIscritti(allIscrittiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setGruppi(gruppiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setPagamenti(pagamentiSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setStaff(staffSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      setAgendaEvents(agendaEventsList);
+      setPresenzeTecnici(presenzeTecniciList);
+
     } catch (error) {
       console.error("Errore nel recupero dei dati principali:", error);
     } finally {
@@ -69,6 +77,7 @@ function MainApp() {
   };
   
   const iscrittiAttivi = useMemo(() => iscritti.filter(i => i.stato === 'attivo'), [iscritti]);
+  const iscrittiArchiviati = useMemo(() => iscritti.filter(i => i.stato === 'archiviato'), [iscritti]);
 
   const notifications = useMemo(() => {
     // ... logica notifiche (invariata)
@@ -101,7 +110,21 @@ function MainApp() {
   return (
     <Layout notifications={notifications}>
       <Routes>
-        <Route path="/" element={<DashboardPage iscritti={iscrittiAttivi} loading={loading} gruppi={gruppi} pagamenti={pagamenti}/>}/>
+        <Route 
+            path="/" 
+            element={
+                <DashboardPage 
+                    iscritti={iscrittiAttivi} 
+                    loading={loading} 
+                    gruppi={gruppi} 
+                    pagamenti={pagamenti}
+                    iscrittiArchiviati={iscrittiArchiviati} 
+                    staff={staff} 
+                    agendaEvents={agendaEvents} 
+                    presenzeTecnici={presenzeTecnici} 
+                />
+            }
+        />
         <Route path="/iscritti" element={<IscrittiPage iscrittiList={iscrittiAttivi} gruppiList={gruppi} onDataUpdate={handleDataUpdate} onIscrittoAdded={handleIscrittoAggiunto}/>}/>
         <Route path="/iscritti/:iscrittoId" element={<SchedaSocioPage onDataUpdate={handleDataUpdate} />}/>
         <Route path="/archivio" element={<ArchivioPage onDataUpdate={handleDataUpdate} />}/>

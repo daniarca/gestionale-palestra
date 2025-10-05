@@ -1,4 +1,4 @@
-// File: src/services/firebaseService.js
+// File: src/services/firebaseService.js (AGGIORNATO)
 
 import {
   collection,
@@ -105,6 +105,8 @@ export const fetchTecnici = async () => {
   const tecniciList = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
+    // AGGIUNTA: Recupera pagaOraria e assicura che sia un numero
+    pagaOraria: parseFloat(doc.data().pagaOraria) || 0,
   }));
   return tecniciList.sort((a, b) => {
     const cognomeA = a.cognome || "";
@@ -113,12 +115,22 @@ export const fetchTecnici = async () => {
   });
 };
 export const addTecnico = async (data) => {
-  await addDoc(collection(db, TECNICI_COLLECTION), data);
+  // AGGIUNTA: Converte pagaOraria in float prima di salvare
+  const dataToSave = {
+    ...data,
+    pagaOraria: parseFloat(data.pagaOraria) || 0,
+  };
+  await addDoc(collection(db, TECNICI_COLLECTION), dataToSave);
 };
 export const updateTecnico = async (data) => {
   const { id, ...rest } = data;
+  // AGGIUNTA: Converte pagaOraria in float prima di salvare
+  const dataToUpdate = {
+    ...rest,
+    pagaOraria: parseFloat(rest.pagaOraria) || 0,
+  };
   const docRef = doc(db, TECNICI_COLLECTION, id);
-  await updateDoc(docRef, rest);
+  await updateDoc(docRef, dataToUpdate);
 };
 export const deleteTecnico = async (id) => {
   await deleteDoc(doc(db, TECNICI_COLLECTION, id));
@@ -186,7 +198,7 @@ export const fetchTecnicoDocuments = async (tecnicoId) => {
 export const deleteTecnicoFile = async (docId, filePath) => {
   const fileRef = ref(storage, filePath);
   await deleteObject(fileRef);
-  await deleteDoc(doc(db, TECNICI_DOCS_COLLECTION, docId));
+  await deleteDoc(doc(db, "documenti_tecnici", docId));
 };
 
 // --- SERVIZI PER AGENDA ---

@@ -1,4 +1,4 @@
-// File: src/pages/DashboardPage.jsx
+// File: src/pages/DashboardPage.jsx (AGGIORNATO)
 
 import React, { useMemo } from "react";
 import {
@@ -25,7 +25,14 @@ import WarningIcon from "@mui/icons-material/Warning";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+// NUOVE ICONE
+import ArchiveIcon from "@mui/icons-material/Archive"; 
+import EventNoteIcon from "@mui/icons-material/EventNote"; 
+import EuroIcon from "@mui/icons-material/Euro"; 
 import moment from "moment";
+import 'moment/locale/it'; // Impostazione del locale per moment
+
+moment.locale('it'); // Impostazione del locale per moment
 
 const giorni = [
   "Domenica",
@@ -82,14 +89,36 @@ function CountCard({ title, count, path, icon: IconComponent, color }) {
   );
 }
 
-function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
-  const theme = useTheme(); // Usa il tema per i colori
+// AGGIUNTA NUOVI PROPS
+function DashboardPage({ 
+    iscritti, 
+    loading, 
+    gruppi, 
+    pagamenti,
+    iscrittiArchiviati = [], 
+    staff = [], 
+    agendaEvents = [], 
+    presenzeTecnici = [] 
+}) {
+  const theme = useTheme(); 
+  const oggi = moment();
 
   const stats = useMemo(() => {
-    const oggi = moment();
+    
     const giornoOggi = oggi.day();
+    const primoGiornoMese = oggi.clone().startOf('month');
+    const ultimoGiornoMese = oggi.clone().endOf('month');
+    
+    // ANNO SPORTIVO
+    const annoCorrente = oggi.year();
+    const meseCorrente = oggi.month();
+    const annoInizioSportivo = meseCorrente < 8 ? annoCorrente - 1 : annoCorrente;
+    // L'anno sportivo va da Settembre (mese 8) a Giugno (mese 5)
+    const inizioAnnoSportivo = moment().year(annoInizioSportivo).month(8).date(1).startOf('day'); 
+    const fineAnnoSportivo = moment().year(annoInizioSportivo + 1).month(5).date(30).endOf('day'); 
 
-    // Filtri certificati
+
+    // Filtri certificati (MANTENUTI)
     const certificatiInScadenza = iscritti.filter((iscritto) => {
       if (!iscritto.certificatoMedico?.scadenza) return false;
       const scadenza = moment(iscritto.certificatoMedico.scadenza);
@@ -110,25 +139,87 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
       return scadenza.isAfter(oggi.clone().add(30, "days"), "day");
     });
 
-    // Filtri abbonamenti scaduti
+    // Filtri abbonamenti scaduti (MANTENUTI)
     const abbonamentiScaduti = iscritti.filter((iscritto) => {
       if (!iscritto.abbonamento?.scadenza) return false;
       const scadenza = moment(iscritto.abbonamento.scadenza);
       return scadenza.isBefore(oggi, "day");
     });
 
-    // Dati finanziari
+    // 1. Dati finanziari (Incasso Totale Complessivo)
     const incassoTotale = pagamenti.reduce(
       (acc, p) => acc + (parseFloat(p.cifra) || 0),
       0
     );
 
-    // Orari
+    // 1b. Incasso Mese Corrente
+    const incassoMeseCorrente = pagamenti
+      .filter((p) => {
+        if (!p.dataPagamento) return false;
+        const dataPagamento = moment(p.dataPagamento);
+        return dataPagamento.isBetween(primoGiornoMese, ultimoGiornoMese, 'day', '[]');
+      })
+      .reduce((acc, p) => acc + (parseFloat(p.cifra) || 0), 0);
+
+    // 1c. Incasso Anno Sportivo
+    const pagamentiAnnoSportivo = pagamenti
+        .filter((p) => {
+            if (!p.dataPagamento) return false;
+            const dataPagamento = moment(p.dataPagamento);
+            return dataPagamento.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]');
+        })
+    const incassoAnnoSportivo = pagamentiAnnoSportivo.reduce((acc, p) => acc + (parseFloat(p.cifra) || 0), 0);
+
+
+    // 2. Costo Personale
+    let costoPersonaleMeseCorrente = 0;
+    let costoPersonaleAnnoSportivo = 0; 
+    
+    const staffMap = staff.reduce((map, t) => {
+        map[t.id] = parseFloat(t.pagaOraria) || 0;
+        return map;
+    }, {});
+
+    // PresenzeTecnici is expected to be available via props
+    presenzeTecnici.forEach(p => {
+        if (p.status === 'Presente' && p.start) {
+            const dataPresenza = moment(p.start);
+            const pagaOraria = staffMap[p.tecnicoId] || 0;
+            const oreLavorate = parseFloat(p.oreLavorate) || 0;
+
+            if (dataPresenza.isBetween(primoGiornoMese, ultimoGiornoMese, 'day', '[]')) {
+                costoPersonaleMeseCorrente += (pagaOraria * oreLavorate);
+            }
+            if (dataPresenza.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]')) {
+                costoPersonaleAnnoSportivo += (pagaOraria * oreLavorate);
+            }
+        }
+    });
+
+
+    // 3. Prossimo Evento Agenda
+    const prossimoEvento = agendaEvents
+        .map(e => ({
+            ...e,
+            startMoment: moment(e.start),
+        }))
+        .filter(e => e.startMoment.isSameOrAfter(oggi, 'day'))
+        .sort((a, b) => a.startMoment.valueOf() - b.startMoment.valueOf())[0] || null;
+
+    // Orari (MANTENUTI)
     const orariDiOggi = gruppi
       .filter((g) => g.giornoSettimana === giornoOggi)
       .sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
 
-    // Scadenze per la lista dettagliata
+    // Scadenze per la lista dettagliata (MANTENUTI + ABBONAMENTI IN SCADENZA)
+    const abbonamentiInScadenza = iscritti.filter((i) => {
+        if (!i.abbonamento?.scadenza) return false;
+        const scadenza = moment(i.abbonamento.scadenza);
+        return (
+          scadenza.isSameOrAfter(oggi, "day") && scadenza.diff(oggi, "days") <= 7 // 7 giorni per la lista
+        );
+      });
+
     const scadenzeDaVisualizzare = [
       ...certificatiScaduti.map((i) => ({
         ...i,
@@ -148,11 +239,15 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
         scadenzaData: moment(i.abbonamento.scadenza),
         isScaduto: true,
       })),
+      ...abbonamentiInScadenza.map((i) => ({
+        ...i,
+        tipoScadenza: "Abbonamento",
+        scadenzaData: moment(i.abbonamento.scadenza),
+        isScaduto: false,
+      })),
     ].sort((a, b) => a.scadenzaData.diff(b.scadenzaData));
 
-    // --- INIZIO FIX ---
-    // 1. Filtra via i pagamenti con date future per non "inquinare" la lista.
-    // 2. Crea una copia dell'array prima di ordinarlo per evitare mutazioni.
+    // Ultimi Pagamenti (MANTENUTI)
     const pagamentiRecenti = [...pagamenti]
       .filter(
         (p) =>
@@ -163,21 +258,27 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           moment(b.dataPagamento).valueOf() - moment(a.dataPagamento).valueOf()
       )
       .slice(0, 5);
-    // --- FINE FIX ---
+    
 
     return {
       totaleIscritti: iscritti.length,
+      totaleArchiviati: iscrittiArchiviati.length, 
       totaleGruppi: gruppi.length,
       certificatiInScadenzaCount: certificatiInScadenza.length,
       certificatiScadutiCount: certificatiScaduti.length,
       certificatiOKCount: certificatiOK.length,
       abbonamentiScadutiCount: abbonamentiScaduti.length,
-      totaleIncassato: incassoTotale,
+      totaleIncassato: incassoTotale, // Totale Complessivo Mantenuto
+      incassoMeseCorrente: incassoMeseCorrente, 
+      costoPersonaleMeseCorrente: costoPersonaleMeseCorrente, 
+      incassoAnnoSportivo: incassoAnnoSportivo,
+      costoPersonaleAnnoSportivo: costoPersonaleAnnoSportivo,
+      prossimoEvento: prossimoEvento, 
       orariDiOggi,
       scadenzeDaVisualizzare,
       pagamentiRecenti,
     };
-  }, [iscritti, gruppi, pagamenti]);
+  }, [iscritti, gruppi, pagamenti, iscrittiArchiviati, staff, presenzeTecnici, agendaEvents, oggi]);
 
   if (loading) {
     return (
@@ -187,15 +288,21 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
     );
   }
 
-  const cardMinHeight = { xs: "auto", md: "250px" };
+  // ALTEZZA FISSA PER ALLINEAMENTO PERFETTO
+  const cardMinHeight = { xs: "auto", md: "300px" }; 
   const detailCardStyle = {
     p: 3,
     borderRadius: 4,
     elevation: 0,
     border: `1px solid ${theme.palette.divider}`,
     backgroundColor: "background.paper",
-    minHeight: cardMinHeight,
+    minHeight: cardMinHeight, 
   };
+  
+  // Nome del mese corrente in italiano e Anno sportivo
+  const nomeMeseCorrente = oggi.format('MMMM').charAt(0).toUpperCase() + oggi.format('MMMM').slice(1);
+  const annoSportivoDisplay = `${oggi.month() < 8 ? oggi.year() - 1 : oggi.year()}/${oggi.month() < 8 ? oggi.year() : oggi.year() + 1}`;
+
 
   return (
     <Box>
@@ -270,8 +377,11 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
         </Stack>
       </Paper>
 
+      {/* RIGA 1: ANAGRAFICA & CASSA */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
+        
+        {/* COLONNA 1: ANAGRAFICA & CORSI - md={6} */}
+        <Grid item xs={12} md={6}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Anagrafica & Corsi
           </Typography>
@@ -295,7 +405,18 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                   color={theme.palette.info.main}
                 />
               </Grid>
-              <Grid item xs={12}>
+              {/* NUOVO: Atleti Archiviati */}
+              <Grid item xs={6}>
+                <CountCard
+                  title="Atleti Archiviati"
+                  count={stats.totaleArchiviati}
+                  path="/archivio"
+                  icon={ArchiveIcon}
+                  color={theme.palette.text.secondary}
+                />
+              </Grid>
+              {/* Stato Certificati */}
+              <Grid item xs={6}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -304,13 +425,13 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                     border: `1px solid ${theme.palette.divider}`,
                     backgroundColor: "background.default",
                     textAlign: "center",
-                    mt: 1,
+                    mt: 1, 
                   }}
                 >
                   <Typography
                     variant="h6"
                     gutterBottom
-                    sx={{ fontWeight: "bold" }}
+                    sx={{ fontWeight: "bold", fontSize: '1rem' }}
                   >
                     Stato Certificati
                   </Typography>
@@ -320,16 +441,17 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                     justifyContent="center"
                     flexWrap="wrap"
                   >
-                    <Chip
-                      label={`OK: ${stats.certificatiOKCount}`}
-                      icon={<CheckCircleIcon />}
-                      color="success"
-                      size="small"
-                    />
+                    {/* CHIP AGGIUNTO: Certificati in Scadenza */}
                     <Chip
                       label={`In Scadenza: ${stats.certificatiInScadenzaCount}`}
                       icon={<WarningIcon />}
                       color="warning"
+                      size="small"
+                    />
+                    <Chip
+                      label={`OK: ${stats.certificatiOKCount}`}
+                      icon={<CheckCircleIcon />}
+                      color="success"
                       size="small"
                     />
                     <Chip
@@ -345,67 +467,150 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        {/* COLONNA 2: RIEPILOGO CASSA & COSTI (METRICHE ANNUALI e MENSILI SEPARATE in blocchi) - md={6} */}
+        <Grid item xs={12} md={6}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
-            Riepilogo Cassa
+            Riepilogo Finanziario
           </Typography>
           <Paper sx={detailCardStyle}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                mb: 1,
-                color: theme.palette.success.main,
+            
+            {/* --- BLOCCO 1: METRICHE ANNUALI (HIGHLIGHTED) --- */}
+            <Paper 
+              elevation={3} // Evidenziazione visiva
+              sx={{ 
+                p: 2, 
+                mb: 3, 
+                borderRadius: 2, 
+                backgroundColor: theme.palette.primary.main + '10', // Sfondo leggero
+                borderLeft: `5px solid ${theme.palette.primary.main}` // Bordo di rilievo
               }}
             >
-              <AttachMoneyIcon sx={{ fontSize: "1.2rem" }} />
-              <Typography variant="body1" sx={{ ml: 1, fontWeight: "medium" }}>
-                Incasso Totale Complessivo
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1, color: theme.palette.primary.main }}>
+                  Anno Sportivo ({annoSportivoDisplay})
               </Typography>
-            </Box>
-            <Typography
-              variant="h3"
-              sx={{ fontWeight: "bold", color: theme.palette.success.main }}
+              {/* GRID INTERNA per i dati */}
+              <Grid container spacing={1}> 
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Incasso Annuale</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: "bold", color: theme.palette.success.main }}>
+                      €{stats.incassoAnnoSportivo.toFixed(2)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Costo Personale</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: "bold", color: theme.palette.error.main }}>
+                      €{stats.costoPersonaleAnnoSportivo.toFixed(2)}
+                    </Typography>
+                  </Grid>
+              </Grid>
+            </Paper>
+
+            {/* --- BLOCCO 2: METRICHE MENSILI (STANDARD) --- */}
+            <Paper 
+              elevation={1} 
+              sx={{ 
+                p: 2, 
+                mb: 3, 
+                borderRadius: 2, 
+                border: `1px solid ${theme.palette.divider}` 
+              }}
             >
-              €{stats.totaleIncassato.toFixed(2)}
-            </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Mese di {nomeMeseCorrente}
+              </Typography>
+              {/* GRID INTERNA per i dati */}
+              <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Incasso Mese</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: "bold", color: theme.palette.success.main }}>
+                      €{stats.incassoMeseCorrente.toFixed(2)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Costo Personale</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: "bold", color: theme.palette.error.main }}>
+                      €{stats.costoPersonaleMeseCorrente.toFixed(2)}
+                    </Typography>
+                  </Grid>
+              </Grid>
+            </Paper>
+            
             <Divider sx={{ my: 2 }} />
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
-            >
-              <Typography variant="body1">Abbonamenti Scaduti:</Typography>
-              <Typography
-                variant="body1"
-                sx={{ fontWeight: "bold", color: theme.palette.error.main }}
-              >
-                {stats.abbonamentiScadutiCount}
-              </Typography>
-            </Box>
-            <Button
-              component={RouterLink}
-              to="/report"
-              fullWidth
-              variant="outlined"
-              startIcon={<AssessmentIcon />}
-            >
-              Visualizza Report Completo
-            </Button>
+
+            {/* --- ABBONAMENTI SCADUTI E BOTTONE (MANTENUTI) --- */}
+            <Grid container spacing={1}>
+                <Grid item xs={12}>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
+                    >
+                      <Typography variant="body1">Abbonamenti Scaduti:</Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: "bold", color: theme.palette.error.main }}
+                      >
+                        {stats.abbonamentiScadutiCount}
+                      </Typography>
+                    </Box>
+                </Grid>
+                <Grid item xs={12}>
+                    <Button
+                      component={RouterLink}
+                      to="/iscritti?filtro=abbonamenti_scaduti"
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<AssessmentIcon />}
+                    >
+                      Visualizza Report Completo
+                    </Button>
+                </Grid>
+            </Grid>
           </Paper>
         </Grid>
+      </Grid>
 
+      {/* RIGA 2: ATTIVITÀ GIORNALIERE, SCADENZE E PAGAMENTI - Tutto md={4} */}
+      <Grid container spacing={3}>
+        
+        {/* NUOVA COLONNA 1: ATTIVITÀ GIORNALIERE (Spostata da sopra) - md={4} */}
         <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
-            Orari di Oggi
+            Attività Giornaliere
           </Typography>
           <Paper sx={detailCardStyle}>
+            {/* Prossimo Evento Agenda (NUOVO) */}
+            <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1, color: theme.palette.primary.main }}>
+                    <EventNoteIcon color="primary" />
+                    <Typography variant="subtitle1" sx={{ ml: 1, fontWeight: "bold" }}>
+                        Prossimo Evento
+                    </Typography>
+                </Box>
+                {stats.prossimoEvento ? (
+                    <Box sx={{ borderLeft: `3px solid ${theme.palette.primary.main}`, pl: 2 }}>
+                        <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                            {stats.prossimoEvento.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {stats.prossimoEvento.startMoment.format('ddd DD/MM HH:mm')}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ pl: 2 }}>
+                        Nessun evento in agenda.
+                    </Typography>
+                )}
+            </Box>
+            
+            <Divider sx={{ my: 2 }} />
+
+            {/* Orari di Oggi (MANTENUTO) */}
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <CalendarTodayIcon color="secondary" />
               <Typography variant="h6" sx={{ ml: 1, fontWeight: "bold" }}>
-                {giorni[new Date().getDay()]}
+                Orari di {giorni[new Date().getDay()]}
               </Typography>
             </Box>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ maxHeight: 200, overflow: "auto" }}>
+            <Box sx={{ maxHeight: 150, overflow: "auto" }}> {/* Altezza ridotta per allineamento */}
               {stats.orariDiOggi.length > 0 ? (
                 <List dense disablePadding>
                   {stats.orariDiOggi.map((gruppo) => (
@@ -433,10 +638,9 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
             </Box>
           </Paper>
         </Grid>
-      </Grid>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        
+        {/* COLONNA 2: SCADENZE DA CONTROLLARE - md={4} */}
+        <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Scadenze da Controllare
           </Typography>
@@ -454,6 +658,19 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                         sx={{
                           alignItems: "center",
                           justifyContent: "space-between",
+                          // NEW: Evidenziazione riga basata su SCADUTO/IN SCADENZA
+                          backgroundColor: item.isScaduto 
+                                            ? theme.palette.error.main + '10' 
+                                            : theme.palette.warning.main + '10', // Usa sempre warning light per non scaduto
+                          borderRadius: 1,
+                          mb: 0.5,
+                          p: 1.5,
+                          transition: 'background-color 0.2s',
+                          '&:hover': {
+                            backgroundColor: item.isScaduto 
+                                            ? theme.palette.error.main + '20' 
+                                            : theme.palette.action.hover,
+                          }
                         }}
                       >
                         <ListItemText
@@ -461,6 +678,7 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                           secondary={`Scadenza ${
                             item.tipoScadenza
                           }: ${item.scadenzaData.format("DD/MM/YYYY")}`}
+                          primaryTypographyProps={{ fontWeight: "bold" }}
                           sx={{ flex: "1 1 auto", pr: 2 }}
                         />
                         <Chip
@@ -470,9 +688,6 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
                           sx={{ whiteSpace: "nowrap", fontWeight: "bold" }}
                         />
                       </ListItem>
-                      {index < stats.scadenzeDaVisualizzare.length - 1 && (
-                        <Divider />
-                      )}
                     </React.Fragment>
                   ))}
                 </List>
@@ -489,7 +704,8 @@ function DashboardPage({ iscritti, loading, gruppi, pagamenti }) {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        {/* COLONNA 3: ULTIMI PAGAMENTI REGISTRATI - md={4} */}
+        <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             Ultimi Pagamenti Registrati
           </Typography>

@@ -1,4 +1,4 @@
-// File: src/pages/SchedaTecnicoPage.jsx
+// File: src/pages/SchedaTecnicoPage.jsx (AGGIORNATO)
 
 import React, { useState, useEffect } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
@@ -238,6 +238,15 @@ function SchedaTecnicoPage() {
               <Typography>
                 <strong>Documento d'Identità:</strong>{" "}
                 {tecnico.numeroDocumento || "N/D"}
+              </Typography>
+            </Grid>
+            {/* NUOVO CAMPO: Paga Oraria */}
+            <Grid item xs={12} md={6}>
+              <Typography>
+                <strong>Paga Oraria:</strong>{" "}
+                {tecnico.pagaOraria !== undefined
+                  ? `${parseFloat(tecnico.pagaOraria).toFixed(2)}€`
+                  : "N/D"}
               </Typography>
             </Grid>
           </Grid>

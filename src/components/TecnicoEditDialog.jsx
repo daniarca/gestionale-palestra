@@ -1,4 +1,4 @@
-// File: src/components/TecnicoEditDialog.jsx
+// File: src/components/TecnicoEditDialog.jsx (AGGIORNATO)
 
 import React, { useState, useEffect } from "react";
 import {
@@ -20,19 +20,32 @@ function TecnicoEditDialog({ open, onClose, onSave, tecnico }) {
 
   useEffect(() => {
     if (tecnico) {
-      setFormData(tecnico); // Se stiamo modificando, popola il form
+      // Se stiamo modificando, popola il form, assicurando pagaOraria
+      setFormData({
+        ...tecnico,
+        pagaOraria: tecnico.pagaOraria ?? 0,
+      });
     } else {
-      setFormData({ ruolo: "Allenatore" }); // Se stiamo creando, imposta un default
+      // Se stiamo creando, imposta un default
+      setFormData({ ruolo: "Allenatore", pagaOraria: 0 }); 
     }
   }, [tecnico, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ 
+        ...prev, 
+        // Conversione esplicita a float per pagaOraria
+        [name]: (name === 'pagaOraria') ? parseFloat(value) || 0 : value 
+    }));
   };
 
   const handleSave = () => {
-    onSave(formData);
+    // La paga oraria viene passata come numero o 0
+    onSave({
+        ...formData,
+        pagaOraria: parseFloat(formData.pagaOraria) || 0,
+    });
   };
 
   return (
@@ -159,7 +172,7 @@ function TecnicoEditDialog({ open, onClose, onSave, tecnico }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
               label="Numero Tessera"
@@ -168,13 +181,25 @@ function TecnicoEditDialog({ open, onClose, onSave, tecnico }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
               label="Numero Documento"
               name="numeroDocumento"
               value={formData.numeroDocumento || ""}
               onChange={handleChange}
+            />
+          </Grid>
+          {/* NUOVO CAMPO: Paga Oraria */}
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Paga Oraria (€)"
+              name="pagaOraria"
+              type="number"
+              value={formData.pagaOraria || 0}
+              onChange={handleChange}
+              InputProps={{ inputProps: { min: 0, step: 0.01 } }}
             />
           </Grid>
         </Grid>
