@@ -20,14 +20,23 @@ export const exportToExcel = (data, fileName, skipFormatting = false) => {
   
   if (!skipFormatting) {
       // 1. Logica di formattazione per la lista standard (es. Export Lista Gara)
-      formattedData = data.map(iscritto => ({
-          'NOME': iscritto.nome || '',
-          'COGNOME': iscritto.cognome || '',
-          'CODICE FISCALE': iscritto.codiceFiscale || '',
-          'DATA DI NASCITA': iscritto.dataNascita || '',
-          'LIVELLO': iscritto.livello || 'N/D', 
-          'CATEGORIA': iscritto.categoria || 'N/D', 
-      }));
+    formattedData = data.map(iscritto => ({
+      'COGNOME': iscritto.cognome || '',
+      'NOME': iscritto.nome || '',
+      'DATA DI NASCITA': iscritto.dataNascita || '',
+      'LUOGO DI NASCITA': iscritto.luogoNascita || '',
+      'CODICE FISCALE': iscritto.codiceFiscale || '',
+      'COMUNE RESIDENZA': iscritto.residenza || '',
+      'INDIRIZZO RESIDENZA': (iscritto.via || '') + (iscritto.numeroCivico ? ' ' + iscritto.numeroCivico : ''),
+      'CAP': iscritto.cap || '',
+      'SCADENZA CERTIFICATO MEDICO': (iscritto.certificatoMedico && iscritto.certificatoMedico.scadenza) ? iscritto.certificatoMedico.scadenza : '',
+      'EMAIL': iscritto.email || '',
+      'FGI N. TESSERA': iscritto.fgiTessera || '',
+      'ASI N. TESSERA': iscritto.asiTessera || '',
+      'CSEN N. TESSERA': iscritto.csenTessera || '',
+      'GENITORE': iscritto.nomeGenitore || '',
+      'CF GENITORE': iscritto.cfGenitore || ''
+    }));
   }
 
   // 2. Creiamo il foglio di lavoro

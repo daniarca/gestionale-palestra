@@ -30,7 +30,13 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import EventNoteIcon from "@mui/icons-material/EventNote"; 
 import EuroIcon from "@mui/icons-material/Euro"; 
 import moment from "moment";
-import 'moment/locale/it'; // Impostazione del locale per moment
+import 'moment/locale/it'; // Manteniamo l'import del locale per il resto del codice
+
+// SOLUZIONE FAIL-SAFE PER IL NOME DEL MESE:
+const MesiItaliani = [
+  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+];
 
 moment.locale('it'); // Impostazione del locale per moment
 
@@ -299,8 +305,9 @@ function DashboardPage({
     minHeight: cardMinHeight, 
   };
   
-  // Nome del mese corrente in italiano e Anno sportivo
-  const nomeMeseCorrente = oggi.format('MMMM').charAt(0).toUpperCase() + oggi.format('MMMM').slice(1);
+  // Nome del mese corrente in italiano (Utilizzo la soluzione fail-safe)
+  const meseIndice = oggi.month();
+  const nomeMeseCorrente = MesiItaliani[meseIndice];
   const annoSportivoDisplay = `${oggi.month() < 8 ? oggi.year() - 1 : oggi.year()}/${oggi.month() < 8 ? oggi.year() : oggi.year() + 1}`;
 
 

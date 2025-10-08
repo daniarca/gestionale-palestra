@@ -40,7 +40,10 @@ function IscrittoDetailDialog({ iscritto, open, onClose, onEdit, onDelete, onAgg
           <Grid item xs={12} md={7}>
             <Typography><strong>Sede:</strong> {iscritto.sede || 'N/D'}</Typography>
             <Typography><strong>Email:</strong> {iscritto.email || 'N/D'}</Typography>
-            <Typography><strong>Cellulare:</strong> {iscritto.cellulare || 'N/D'}</Typography>
+            <Typography><strong>Cellulare:</strong> {iscritto.cellulare || 'N/D'}{iscritto.cellulare1Tipo ? ` (${iscritto.cellulare1Tipo})` : ''}</Typography>
+            {iscritto.cellulare2 && (
+              <Typography><strong>Cellulare 2:</strong> {iscritto.cellulare2}{iscritto.cellulare2Tipo ? ` (${iscritto.cellulare2Tipo})` : ''}</Typography>
+            )}
             <Typography><strong>Nato/a il:</strong> {formatDate(iscritto.dataNascita)} a {iscritto.luogoNascita || 'N/D'}</Typography>
             <Typography><strong>Residenza:</strong> {`${iscritto.via || ''} ${iscritto.numeroCivico || ''}, ${iscritto.cap || ''} ${iscritto.residenza || ''}`}</Typography>
             <Typography><strong>Codice Fiscale:</strong> {iscritto.codiceFiscale || 'N/D'}</Typography>

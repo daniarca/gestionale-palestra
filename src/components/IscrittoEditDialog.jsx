@@ -22,7 +22,7 @@ import {
 // Nuove costanti per Livelli e Categorie
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
 const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
-const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
+const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Nonno", "Nonna", "Altro"];
 
 function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
   const [formData, setFormData] = useState({});
@@ -36,10 +36,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         scadenzaAbbonamento: iscritto.abbonamento?.scadenza || "",
         livello: iscritto.livello || "",
         categoria: iscritto.categoria || "",
-        codiceTesseramento1:
-          iscritto.codiceTesseramento1 || iscritto.codiceAssicurazione || "",
-        codiceTesseramento2: iscritto.codiceTesseramento2 || "",
-        codiceTesseramento3: iscritto.codiceTesseramento3 || "",
+        fgiTessera: iscritto.fgiTessera || iscritto.codiceTesseramento1 || iscritto.codiceAssicurazione || "",
+        asiTessera: iscritto.asiTessera || iscritto.codiceTesseramento2 || "",
+        csenTessera: iscritto.csenTessera || iscritto.codiceTesseramento3 || "",
         cellulare1: iscritto.cellulare1 || iscritto.cellulare || "",
         cellulare1Tipo: iscritto.cellulare1Tipo || "Mamma",
         cellulare2: iscritto.cellulare2 || "",
@@ -66,9 +65,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       quotaIscrizione,
       quotaMensile,
       codiceAssicurazione,
-      codiceTesseramento1,
-      codiceTesseramento2,
-      codiceTesseramento3,
+  fgiTessera,
+  asiTessera,
+  csenTessera,
       cellulare,
       cellulare1,
       cellulare1Tipo,
@@ -93,9 +92,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       categoria,
       quotaIscrizione: parseFloat(quotaIscrizione) || 0,
       quotaMensile: parseFloat(quotaMensile) || 0,
-      codiceTesseramento1,
-      codiceTesseramento2,
-      codiceTesseramento3,
+  fgiTessera,
+  asiTessera,
+  csenTessera,
       cellulare1,
       cellulare1Tipo,
       cellulare2: finalCellulare2,
@@ -176,9 +175,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                 <TextField
                   fullWidth
                   margin="dense"
-                  name="codiceTesseramento1"
-                  label="Codice Tesseramento 1"
-                  value={formData.codiceTesseramento1 || ""}
+                  name="fgiTessera"
+                  label="FGI Numero Tessera"
+                  value={formData.fgiTessera || ""}
                   onChange={handleChange}
                 />
               </Grid>
@@ -186,9 +185,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                 <TextField
                   fullWidth
                   margin="dense"
-                  name="codiceTesseramento2"
-                  label="Codice Tesseramento 2"
-                  value={formData.codiceTesseramento2 || ""}
+                  name="asiTessera"
+                  label="ASI Numero Tessera"
+                  value={formData.asiTessera || ""}
                   onChange={handleChange}
                 />
               </Grid>
@@ -196,9 +195,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                 <TextField
                   fullWidth
                   margin="dense"
-                  name="codiceTesseramento3"
-                  label="Codice Tesseramento 3"
-                  value={formData.codiceTesseramento3 || ""}
+                  name="csenTessera"
+                  label="CSEN Numero Tessera"
+                  value={formData.csenTessera || ""}
                   onChange={handleChange}
                 />
               </Grid>

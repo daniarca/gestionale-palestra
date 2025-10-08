@@ -24,7 +24,7 @@ import SaveIcon from "@mui/icons-material/Save";
 // Nuove costanti per Livelli e Categorie (per ginnastica artistica)
 const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
 const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
-const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Altro"];
+const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Nonno", "Nonna", "Altro"];
 
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   // STATI DEL FORM
@@ -42,9 +42,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   const [cellulare2Tipo, setCellulare2Tipo] = useState("");
   const [email, setEmail] = useState("");
   const [codiceFiscale, setCodiceFiscale] = useState("");
-  const [codiceTesseramento1, setCodiceTesseramento1] = useState("");
-  const [codiceTesseramento2, setCodiceTesseramento2] = useState("");
-  const [codiceTesseramento3, setCodiceTesseramento3] = useState("");
+  const [fgiTessera, setFgiTessera] = useState("");
+  const [asiTessera, setAsiTessera] = useState("");
+  const [csenTessera, setCsenTessera] = useState("");
   const [nomeGenitore, setNomeGenitore] = useState("");
   const [cfGenitore, setCfGenitore] = useState("");
   const [annotazioni, setAnnotazioni] = useState("");
@@ -72,9 +72,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     setCellulare2Tipo("");
     setEmail("");
     setCodiceFiscale("");
-    setCodiceTesseramento1("");
-    setCodiceTesseramento2("");
-    setCodiceTesseramento3("");
+  setFgiTessera("");
+  setAsiTessera("");
+  setCsenTessera("");
     setNomeGenitore("");
     setCfGenitore("");
     setAnnotazioni("");
@@ -110,9 +110,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       cellulare2Tipo: cellulare2 ? cellulare2Tipo || "Altro" : null,
       email,
       codiceFiscale,
-      codiceTesseramento1,
-      codiceTesseramento2,
-      codiceTesseramento3,
+  fgiTessera,
+  asiTessera,
+  csenTessera,
       nomeGenitore,
       cfGenitore,
       annotazioni,
@@ -212,9 +212,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     size="small"
                     fullWidth
                     variant="outlined"
-                    label="Codice Tesseramento 1"
-                    value={codiceTesseramento1}
-                    onChange={(e) => setCodiceTesseramento1(e.target.value)}
+                    label="FGI Numero Tessera"
+                    value={fgiTessera}
+                    onChange={(e) => setFgiTessera(e.target.value)}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -222,9 +222,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     size="small"
                     fullWidth
                     variant="outlined"
-                    label="Codice Tesseramento 2"
-                    value={codiceTesseramento2}
-                    onChange={(e) => setCodiceTesseramento2(e.target.value)}
+                    label="ASI Numero Tessera"
+                    value={asiTessera}
+                    onChange={(e) => setAsiTessera(e.target.value)}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -232,9 +232,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     size="small"
                     fullWidth
                     variant="outlined"
-                    label="Codice Tesseramento 3"
-                    value={codiceTesseramento3}
-                    onChange={(e) => setCodiceTesseramento3(e.target.value)}
+                    label="CSEN Numero Tessera"
+                    value={csenTessera}
+                    onChange={(e) => setCsenTessera(e.target.value)}
                   />
                 </Grid>
               </Grid>

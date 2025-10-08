@@ -556,20 +556,20 @@ function SchedaSocioPage({ onDataUpdate }) {
           <Grid container spacing={1}>
             <Grid item xs={12} sm={4}>
               <Typography>
-                <strong>Codice Tesseramento 1:</strong>{" "}
-                {iscritto.codiceTesseramento1 || "N/D"}
+                <strong>FGI Numero Tessera:</strong>{" "}
+                {iscritto.fgiTessera || iscritto.codiceTesseramento1 || "N/D"}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography>
-                <strong>Codice Tesseramento 2:</strong>{" "}
-                {iscritto.codiceTesseramento2 || "N/D"}
+                <strong>ASI Numero Tessera:</strong>{" "}
+                {iscritto.asiTessera || iscritto.codiceTesseramento2 || "N/D"}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography>
-                <strong>Codice Tesseramento 3:</strong>{" "}
-                {iscritto.codiceTesseramento3 || "N/D"}
+                <strong>CSEN Numero Tessera:</strong>{" "}
+                {iscritto.csenTessera || iscritto.codiceTesseramento3 || "N/D"}
               </Typography>
             </Grid>
           </Grid>
