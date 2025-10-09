@@ -27,6 +27,15 @@ import LanguageIcon from '@mui/icons-material/Language'; // Icona per il sito we
 
 const updateLog = [
     {
+    version: "0.9.20",
+    date: "10/10/2025",
+    changes: [
+      { type: 'NEW', text: "Implementato un sistema completo di promemoria per gli eventi in agenda, con notifiche e un'icona riepilogativa nella barra superiore." },
+      { type: 'IMPROVEMENT', text: "Le notifiche dei promemoria ora appaiono come un dialogo modale al centro dello schermo per una maggiore visibilità e interazione." },
+      { type: 'IMPROVEMENT', text: "Aggiunta un'icona 'sveglia' nella barra superiore che mostra un contatore e un elenco dei promemoria attivi per i prossimi 7 giorni." },
+    ]
+  },
+    {
     version: "0.9.19",
     date: "05/10/2025",
     changes: [

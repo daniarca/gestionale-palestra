@@ -1,6 +1,7 @@
 // File: src/pages/AgendaPage.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Paper, useTheme } from "@mui/material";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -15,6 +16,7 @@ import {
   addAgendaEvent,
   updateAgendaEvent,
   deleteAgendaEvent,
+  checkAndNotifyReminders,
 } from "../services/firebaseService.js";
 
 function AgendaPage() {
@@ -22,8 +24,10 @@ function AgendaPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDateInfo, setSelectedDateInfo] = useState(null);
-  const { showNotification } = useNotification();
+  const { showNotification, showReminder } = useNotification();
   const theme = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const loadEvents = useCallback(async () => {
     try {
@@ -39,6 +43,27 @@ function AgendaPage() {
     loadEvents();
   }, [loadEvents]);
 
+  // Effetto per controllare i promemoria UNA SOLA VOLTA al caricamento della pagina
+  useEffect(() => {
+    // Usiamo un timeout per assicurarci che il caricamento iniziale sia completo
+    const timer = setTimeout(() => checkAndNotifyReminders(showReminder, navigate), 1000);
+    return () => clearTimeout(timer); // Pulizia del timer
+  }, [showReminder, navigate]); // Eseguito solo una volta
+
+  // Effetto per gestire l'apertura di un evento da URL (es. da notifica)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const eventId = params.get("eventId");
+    if (eventId && events.length > 0) {
+      const eventToOpen = events.find(e => e.id === eventId);
+      if (eventToOpen) {
+        handleEventClick({ event: { ...eventToOpen, ...eventToOpen.extendedProps, id: eventToOpen.id, startStr: eventToOpen.start, endStr: eventToOpen.end } });
+        // Rimuovi il parametro dall'URL per non riaprirlo al refresh
+        navigate('/agenda', { replace: true });
+      }
+    }
+  }, [location.search, events, navigate]);
+
   const handleDateSelect = (selectInfo) => {
     setSelectedDateInfo(selectInfo);
     setSelectedEvent(null);
@@ -46,14 +71,16 @@ function AgendaPage() {
   };
 
   const handleEventClick = (clickInfo) => {
+    const props = clickInfo.event.extendedProps || clickInfo.event;
     const eventData = {
       id: clickInfo.event.id,
       title: clickInfo.event.title,
       start: clickInfo.event.startStr,
       end: clickInfo.event.endStr,
       allDay: clickInfo.event.allDay,
-      color: clickInfo.event.backgroundColor,
-      description: clickInfo.event.extendedProps.description || "",
+      color: clickInfo.event.backgroundColor || props.color,
+      description: props.description || "",
+      reminderDate: props.reminderDate || null,
     };
     setSelectedEvent(eventData);
     setSelectedDateInfo(null);
@@ -70,6 +97,8 @@ function AgendaPage() {
       allDay: event.allDay,
       color: event.backgroundColor,
       description: event.extendedProps.description || "",
+      // Manteniamo i dati del promemoria durante il drag & drop
+      reminderDate: event.extendedProps.reminderDate || null,
     };
     try {
       await updateAgendaEvent(updatedEvent);

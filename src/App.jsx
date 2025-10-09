@@ -22,6 +22,7 @@ import DocumentazionePage from "./pages/DocumentazionePage.jsx";
 import CreditsPage from "./pages/CreditsPage.jsx";
 import RegistroTecniciPage from "./pages/RegistroTecniciPage.jsx"; // Assicurati che l'import sia presente
 import { fetchPresenzeTecnici, fetchAgendaEvents } from "./services/firebaseService.js";
+import moment from "moment";
 import "./App.css";
 
 function MainApp() {
@@ -107,8 +108,26 @@ function MainApp() {
     return alerts;
   }, [iscritti]);
 
+  const activeReminders = useMemo(() => {
+    if (!agendaEvents) return [];
+    const today = moment().startOf('day');
+    const sevenDaysFromNow = moment().add(7, 'days').endOf('day');
+
+    return agendaEvents
+        .filter(event => {
+            if (!event.reminderDate || event.reminderSent) {
+                return false;
+            }
+            const reminderMoment = moment(event.reminderDate);
+            // Includi promemoria da oggi fino a 7 giorni nel futuro
+            return reminderMoment.isBetween(today, sevenDaysFromNow, 'day', '[]');
+        })
+        // Ordina per data promemoria imminente
+        .sort((a, b) => moment(a.reminderDate).diff(moment(b.reminderDate)));
+  }, [agendaEvents]);
+
   return (
-    <Layout notifications={notifications}>
+    <Layout notifications={notifications} activeReminders={activeReminders}>
       <Routes>
         <Route 
             path="/" 

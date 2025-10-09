@@ -19,6 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ViewModuleIcon from "@mui/icons-material/ViewModule"; // Icona per la griglia
 import ViewListIcon from "@mui/icons-material/ViewList"; // Icona per la lista
 import IscrittoForm from "../components/IscrittoForm.jsx";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
 import IscrittiLista from "../components/IscrittiLista.jsx";
 import { useNotification } from "../context/NotificationContext.jsx";
 import { exportToExcel } from "../utils/exportToExcel.js";
@@ -185,6 +186,21 @@ function IscrittiPage({
   }, [iscrittiList, gruppiList, activeFilter, searchTerm, today]);
 
   const isSelected = selectedIds.length > 0;
+
+  const areAllSelected = useMemo(
+    () =>
+      filteredIscritti.length > 0 &&
+      selectedIds.length === filteredIscritti.length,
+    [filteredIscritti.length, selectedIds.length]
+  );
+
+  const handleToggleSelectAll = () => {
+    if (areAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredIscritti.map((i) => i.id));
+    }
+  };
 
   const clearGruppoFilter = () => {
     navigate("/iscritti");
@@ -383,20 +399,34 @@ function IscrittiPage({
             borderRadius: theme.shape.borderRadius * 2,
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "center", // Allineamento verticale
+            gap: 2, // Spazio tra gli elementi
           }}
         >
-          <Typography
-            variant="body1"
-            sx={{ fontWeight: "bold", color: theme.palette.text.primary }}
-          >
-            {selectedIds.length} Soci Selezionati
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Typography
+              variant="body1"
+              sx={{ fontWeight: "bold", color: theme.palette.text.primary }}
+            >
+              {selectedIds.length} Soci Selezionati
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleToggleSelectAll}
+              startIcon={<SelectAllIcon />}
+            >
+              {areAllSelected ? "Deseleziona Tutti" : "Seleziona Tutti"}
+            </Button>
+          </Stack>
           <Button
             variant="contained"
             color="success"
             onClick={handleExportSelected}
             startIcon={<FileDownloadIcon />}
+            sx={{
+              color: "white",
+            }}
           >
             Esporta Lista Gara (.xlsx)
           </Button>

@@ -26,6 +26,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import AlarmIcon from '@mui/icons-material/Alarm';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import GroupsIcon from "@mui/icons-material/Groups";
 import BadgeIcon from "@mui/icons-material/Badge";
@@ -39,6 +40,8 @@ import { auth } from "../firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import packageJson from "../../package.json";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import moment from "moment";
+import Notifier from "./Notifier.jsx"; // <-- 1. IMPORTA IL NOTIFIER
 import logoImage from "../assets/logo.png"; // LOGO
 
 const drawerWidth = 280;
@@ -73,34 +76,42 @@ const navSections = [
 ];
 // --- FINE CORREZIONE ---
 
-function Layout({ children, notifications = [] }) {
+function Layout({ children, notifications = [], activeReminders = [] }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
+  const [remindersAnchorEl, setRemindersAnchorEl] = useState(null);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/login");
   };
-  const handleNotificationsClick = (event) => setAnchorEl(event.currentTarget);
-  const handleNotificationsClose = () => setAnchorEl(null);
+  const handleNotificationsClick = (event) => setNotificationsAnchorEl(event.currentTarget);
+  const handleNotificationsClose = () => setNotificationsAnchorEl(null);
+  const handleRemindersClick = (event) => setRemindersAnchorEl(event.currentTarget);
+  const handleRemindersClose = () => setRemindersAnchorEl(null);
 
   const totalNotifications = notifications.reduce(
     (sum, notif) => sum + notif.count,
     0
   );
-  const open = Boolean(anchorEl);
+  const notificationsOpen = Boolean(notificationsAnchorEl);
+  const remindersOpen = Boolean(remindersAnchorEl);
   const sidebarTextColor = theme.palette.text.primary;
   const sidebarIconColor = theme.palette.text.secondary;
   const selectedColor = theme.palette.primary.main;
   const selectedBackgroundColor = theme.palette.primary.main + "20";
   const isOrarioPage =
     location.pathname === "/orario" || location.pathname === "/agenda";
+  const handleReminderItemClick = (eventId) => {
+    navigate(`/agenda?eventId=${eventId}`);
+    handleRemindersClose();
+  };
 
   const drawerContent = (
     <>
@@ -226,6 +237,7 @@ function Layout({ children, notifications = [] }) {
 
   return (
     <Box sx={{ display: "flex" }}>
+      <Notifier /> {/* <-- 2. AGGIUNGI IL COMPONENTE QUI */}
       <AppBar
         position="fixed"
         sx={{
@@ -297,8 +309,13 @@ function Layout({ children, notifications = [] }) {
             </Button>
             <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
             <Typography variant="body2">{currentUser?.email}</Typography>
-            <IconButton color="inherit" onClick={handleNotificationsClick}>
-              <Badge badgeContent={totalNotifications} color="error">
+            <IconButton color="inherit" onClick={handleRemindersClick} title="Promemoria Attivi">
+              <Badge badgeContent={activeReminders.length} color="primary">
+                <AlarmIcon />
+              </Badge>
+            </IconButton>
+            <IconButton color="inherit" onClick={handleNotificationsClick} title="Notifiche Scadenze">
+              <Badge badgeContent={totalNotifications} color="primary">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
@@ -315,8 +332,13 @@ function Layout({ children, notifications = [] }) {
           <Box
             sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}
           >
+            <IconButton color="inherit" onClick={handleRemindersClick}>
+              <Badge badgeContent={activeReminders.length} color="primary">
+                <AlarmIcon />
+              </Badge>
+            </IconButton>
             <IconButton color="inherit" onClick={handleNotificationsClick}>
-              <Badge badgeContent={totalNotifications} color="error">
+              <Badge badgeContent={totalNotifications} color="primary">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
@@ -372,7 +394,7 @@ function Layout({ children, notifications = [] }) {
         <Toolbar />
         {children}
       </Box>
-      <Menu anchorEl={anchorEl} open={open} onClose={handleNotificationsClose}>
+      <Menu anchorEl={notificationsAnchorEl} open={notificationsOpen} onClose={handleNotificationsClose}>
         {notifications.length > 0 ? (
           notifications.map((notif) => (
             <MenuItem
@@ -387,6 +409,25 @@ function Layout({ children, notifications = [] }) {
         ) : (
           <MenuItem onClick={handleNotificationsClose}>
             Nessuna notifica
+          </MenuItem>
+        )}
+      </Menu>
+      <Menu anchorEl={remindersAnchorEl} open={remindersOpen} onClose={handleRemindersClose}>
+        {activeReminders.length > 0 ? (
+          activeReminders.map((event) => (
+            <MenuItem
+              key={event.id}
+              onClick={() => handleReminderItemClick(event.id)}
+            >
+              <ListItemText 
+                primary={event.title}
+                secondary={`Promemoria per il: ${moment(event.reminderDate).format('DD/MM/YYYY')}`}
+              />
+            </MenuItem>
+          ))
+        ) : (
+          <MenuItem onClick={handleRemindersClose}>
+            Nessun promemoria attivo
           </MenuItem>
         )}
       </Menu>
