@@ -26,6 +26,15 @@ import CodeIcon from '@mui/icons-material/Code';
 import LanguageIcon from '@mui/icons-material/Language'; // Icona per il sito web
 
 const updateLog = [
+  {
+    version: "0.9.20",
+    date: "06/10/2025",
+    changes: [
+      { type: 'FIX', text: "Risolto un errore critico nel form di nuova iscrizione che impediva il calcolo del codice fiscale e causava il crash dell'applicazione." },
+      { type: 'IMPROVEMENT', text: "Aggiornata la libreria per il calcolo del codice fiscale (`codice-fiscale-utils`) alla sua versione più recente, migliorando l'affidabilità della funzione." },
+      { type: 'IMPROVEMENT', text: "Migliorata la gestione dello stato nel form di creazione socio, allineandola a quella del form di modifica per maggiore coerenza e manutenibilità." },
+    ]
+  },
     {
     version: "0.9.19",
     date: "05/10/2025",

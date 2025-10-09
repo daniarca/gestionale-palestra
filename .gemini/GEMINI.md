@@ -53,8 +53,7 @@ Il progetto adotta un'architettura moderna e serverless.
 
 ### `IscrittoForm.jsx` e `IscrittoEditDialog.jsx`
 Questi due componenti gestiscono l'inserimento e la modifica dei dati.
-*   **`IscrittoForm.jsx`**: Utilizza stati locali multipli (`useState`) per ogni campo del form. Alla sottomissione, costruisce un nuovo oggetto `nuovoIscritto` e lo passa a una funzione `onIscrittoAggiunto`.
-*   **`IscrittoEditDialog.jsx`**: Approccio più centralizzato. Utilizza un singolo stato (`formData`) che viene inizializzato con i dati del socio esistente. Questo semplifica la gestione del form e la logica di salvataggio.
+*   **Gestione Stato Unificata**: Entrambi i componenti (`IscrittoForm.jsx` per la creazione e `IscrittoEditDialog.jsx` per la modifica) utilizzano un approccio coerente per la gestione dello stato del form, basato su un singolo oggetto di stato (`formData`) gestito tramite `useState`. Questo centralizza i dati del modulo e semplifica la logica di aggiornamento e salvataggio.
 *   **Coerenza dei Dati**: Entrambi i componenti si occupano di mappare i dati del form nel formato richiesto da Firestore, gestendo oggetti annidati come `certificatoMedico` e `abbonamento`.
 
 ### `IscrittoDetailDialog.jsx`
@@ -80,8 +79,9 @@ Utility riutilizzabile per la creazione di file Excel.
 ### Opportunità di Miglioramento
 
 *   **Gestione dello Stato dei Form**: I form (`IscrittoForm.jsx`) con molti `useState` individuali potrebbero essere refattorizzati per usare un singolo oggetto di stato o una libreria come `react-hook-form` per semplificare la gestione, la validazione e ridurre il boilerplate. L'`IscrittoEditDialog.jsx` adotta già un approccio migliore con un singolo oggetto di stato.
+*   **Validazione Avanzata dei Form**: Sebbene la gestione dello stato sia buona, si potrebbe introdurre una libreria come `react-hook-form` o `Formik` per gestire la validazione dei campi in modo più robusto e dichiarativo, migliorando l'esperienza utente con feedback immediati sugli errori di inserimento.
 *   **Consolidamento Componenti**: Valutare se `IscrittoDetailDialog.jsx` è ancora necessario o se le sue funzionalità possono essere completamente assorbite dalla `SchedaSocioPage.jsx` per evitare duplicazioni di codice e di logica.
-*   **Costanti Condivise**: Le costanti come `LIVELLI`, `CATEGORIE`, `TIPI_CELLULARE` sono definite in più file (`IscrittoForm.jsx`, `IscrittoEditDialog.jsx`). Potrebbero essere estratte in un file dedicato (es. `src/constants.js`) per garantire coerenza e facilitare le modifiche.
+*   **Costanti Condivise**: Le costanti come `LIVELLI`, `CATEGORIE`, `TIPI_CELLULARE` sono definite direttamente in `IscrittoForm.jsx`. Potrebbero essere estratte in un file dedicato (es. `src/utils/constants.js`) per essere riutilizzate in altri componenti (come `IscrittoEditDialog.jsx`) e per centralizzare la configurazione dell'applicazione.
 *   **Internazionalizzazione (i18n)**: Sebbene il progetto sia in italiano, la presenza di file di localizzazione di `fullcalendar` (`it.js`, `az.js`) suggerisce che potrebbe esserci un calendario. Se l'applicazione dovesse supportare più lingue, sarebbe opportuno implementare una libreria i18n come `i18next`.
 
 ---
