@@ -15,6 +15,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Avatar,
   ListItemIcon,
 } from "@mui/material";
 import moment from "moment";
@@ -160,6 +161,17 @@ function CardItem({ iscritto, isSelected, onSelect, activeFilter }) {
                     }}
                   />
                 )}
+                {iscritto.isCalisthenics && (
+                  <Avatar
+                    sx={{
+                      bgcolor: "secondary.main",
+                      width: 24,
+                      height: 24,
+                      fontSize: "0.875rem",
+                      fontWeight: "bold",
+                    }}
+                  >C</Avatar>
+                )}
               </Stack>
             )}
           </Box>
@@ -234,9 +246,47 @@ function ListItemRow({ iscritto, isSelected, onSelect, activeFilter }) {
       to={`/iscritti/${iscritto.id}`}
     >
       <ListItemText
-        primary={`${iscritto.cognome} ${iscritto.nome}`}
+        primary={
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Typography component="span" sx={{ fontWeight: "bold" }}>
+              {`${iscritto.cognome} ${iscritto.nome}`}
+            </Typography>
+            {iscritto.livello && (
+              <Chip
+                label={iscritto.livello}
+                size="small"
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary,
+                  borderColor: theme.palette.primary.main,
+                }}
+              />
+            )}
+            {iscritto.categoria && (
+              <Chip
+                label={iscritto.categoria}
+                size="small"
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary,
+                  borderColor: theme.palette.secondary.main,
+                }}
+              />
+            )}
+            {iscritto.isCalisthenics && (
+              <Avatar
+                sx={{
+                  bgcolor: "secondary.main",
+                  width: 24,
+                  height: 24,
+                  fontSize: "0.875rem",
+                  fontWeight: "bold",
+                }}
+              >C</Avatar>
+            )}
+          </Stack>
+        }
         secondary={getScadenzaText(iscritto, activeFilter)}
-        primaryTypographyProps={{ fontWeight: "bold" }}
       />
     </ListItem>
   );

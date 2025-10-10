@@ -27,6 +27,16 @@ import LanguageIcon from '@mui/icons-material/Language'; // Icona per il sito we
 
 const updateLog = [
     {
+    version: "0.9.21",
+    date: "11/10/2025",
+    changes: [
+      { type: 'NEW', text: "Aggiunta la gestione dell'iscrizione al corso 'Calisthenics' per ogni socio." },
+      { type: 'IMPROVEMENT', text: "Inserito un interruttore (toggle) nei moduli di creazione/modifica per l'iscrizione a Calisthenics." },
+      { type: 'IMPROVEMENT', text: "Aggiunto un indicatore visivo (icona 'C') nella lista iscritti per identificare rapidamente i partecipanti al corso." },
+      { type: 'FIX', text: "Risolto un bug che impediva il corretto salvataggio dello stato 'Calisthenics' durante la modifica di un socio." },
+    ]
+  },
+    {
     version: "0.9.20",
     date: "10/10/2025",
     changes: [

@@ -53,6 +53,7 @@ function IscrittoDetailDialog({ iscritto, open, onClose, onEdit, onDelete, onAgg
             <Typography><strong>Quota Mensile:</strong> {iscritto.quotaMensile ? `${iscritto.quotaMensile}€` : 'N/D'}</Typography>
             <Typography><strong>Scadenza Abbonamento:</strong> {formatDate(iscritto.abbonamento?.scadenza)}</Typography>
             <Typography><strong>Scadenza Certificato:</strong> {formatDate(iscritto.certificatoMedico?.scadenza)}</Typography>
+            <Typography><strong>Calisthenics:</strong> {iscritto.isCalisthenics ? 'Sì' : 'No'}</Typography>
             <Typography><strong>Annotazioni:</strong> {iscritto.annotazioni || 'Nessuna'}</Typography>
           </Grid>
           <Grid item xs={12} md={5}>

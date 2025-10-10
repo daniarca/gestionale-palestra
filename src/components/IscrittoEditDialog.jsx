@@ -17,6 +17,7 @@ import {
   Select,
   Divider,
   Typography,
+  Switch,
 } from "@mui/material";
 
 // Nuove costanti per Livelli e Categorie
@@ -43,15 +44,21 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         cellulare1Tipo: iscritto.cellulare1Tipo || "Mamma",
         cellulare2: iscritto.cellulare2 || "",
         cellulare2Tipo: iscritto.cellulare2Tipo || "",
+        isCalisthenics: iscritto.isCalisthenics || false,
       });
     }
   }, [iscritto, open]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // Lo Switch di MUI non ha type='checkbox', quindi gestiamo il suo valore 'checked' separatamente.
+    const finalValue = name === 'isCalisthenics' 
+      ? checked 
+      : (type === "checkbox" ? checked : value);
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: finalValue,
     }));
   };
 
@@ -73,6 +80,7 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       cellulare1Tipo,
       cellulare2,
       cellulare2Tipo,
+      isCalisthenics,
       ...rest
     } = formData;
 
@@ -99,6 +107,7 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       cellulare1Tipo,
       cellulare2: finalCellulare2,
       cellulare2Tipo: finalCellulare2Tipo,
+      isCalisthenics: isCalisthenics, // <-- ECCO LA CORREZIONE!
     };
     onSave(dataToSave);
   };
@@ -415,6 +424,18 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   value={formData.scadenzaAbbonamento || ""}
                   onChange={handleChange}
                   InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isCalisthenics || false}
+                      onChange={handleChange} // Ora gestito correttamente
+                      name="isCalisthenics"
+                    />
+                  }
+                  label="Iscritto a Calisthenics"
                 />
               </Grid>
             </Grid>

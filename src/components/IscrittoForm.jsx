@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Switch,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 
@@ -56,6 +57,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   const [quotaMensile, setQuotaMensile] = useState("");
   const [livello, setLivello] = useState("");
   const [categoria, setCategoria] = useState("");
+  const [isCalisthenics, setIsCalisthenics] = useState(false);
 
   const resetForm = () => {
     setNome("");
@@ -86,6 +88,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     setQuotaMensile("");
     setLivello("");
     setCategoria("");
+    setIsCalisthenics(false);
     onClose();
   };
 
@@ -121,6 +124,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       quotaMensile: parseFloat(quotaMensile) || 0,
       livello,
       categoria,
+      isCalisthenics: isCalisthenics, // Assicuriamoci che il valore booleano sia passato
       stato: "attivo",
       dataIscrizione: new Date().toISOString().split("T")[0],
       certificatoMedico: {
@@ -459,6 +463,18 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     value={scadenzaAbbonamento}
                     onChange={(e) => setScadenzaAbbonamento(e.target.value)}
                     InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isCalisthenics}
+                        onChange={(e) => setIsCalisthenics(e.target.checked)}
+                        name="isCalisthenics"
+                      />
+                    }
+                    label="Iscritto a Calisthenics"
                   />
                 </Grid>
               </Grid>
