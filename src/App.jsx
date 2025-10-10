@@ -142,7 +142,7 @@ function MainApp() {
                     agendaEvents={agendaEvents} 
                     presenzeTecnici={presenzeTecnici} 
                 />
-            }
+            } 
         />
         <Route path="/iscritti" element={<IscrittiPage iscrittiList={iscrittiAttivi} gruppiList={gruppi} onDataUpdate={handleDataUpdate} onIscrittoAdded={handleIscrittoAggiunto}/>}/>
         <Route path="/iscritti/:iscrittoId" element={<SchedaSocioPage onDataUpdate={handleDataUpdate} />}/>
