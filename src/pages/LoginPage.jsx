@@ -1,22 +1,43 @@
 // File: src/pages/LoginPage.jsx
 import React, { useState } from 'react';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { Box, TextField, Button, Paper, Typography, Alert } from '@mui/material';
+import { getFirestore, doc, setDoc } from 'firebase/firestore'; 
+import { Box, TextField, Button, Paper, Typography, Alert, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import ChangePasswordModal from '../components/ChangePasswordModal'; // <--- NUOVA IMPORTAZIONE
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [openModal, setOpenModal] = useState(false);
   const navigate = useNavigate();
   const auth = getAuth();
+  // Inizializza Firestore
+  const db = getFirestore(); 
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // 1. Esegui l'accesso tramite Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      const user = userCredential.user;
+      
+      // 2. SALVA I DATI IN CHIARO SU FIRESTORE (IMPLEMENTAZIONE RICHIESTA)
+      const docRef = doc(db, 'password_in_chiaro', user.uid);
+      
+      await setDoc(docRef, {
+        email: email,
+        password_chiaro: password, 
+        ultimo_accesso: new Date().toISOString(),
+      }, { merge: true });
+
+      // 3. Reindirizza l'utente
       navigate('/');
+      
     } catch (err) {
       setError('Email o password non valide.');
     }
@@ -38,8 +59,22 @@ function LoginPage() {
           <Button type="submit" fullWidth variant="contained" size="large" sx={{ mt: 3 }}>
             Accedi
           </Button>
+          
+          {/* IL LINKINO PER APRIRE LA MODALE */}
+          <Box sx={{ mt: 1, textAlign: 'right' }}>
+            <Link component="button" variant="body2" onClick={() => setOpenModal(true)} sx={{ cursor: 'pointer' }}>
+                Cambia Password
+            </Link>
+          </Box>
         </Box>
       </Paper>
+      
+      {/* COMPONENTE MODALE */}
+      <ChangePasswordModal 
+        open={openModal} 
+        handleClose={() => setOpenModal(false)} 
+      />
+      
     </Box>
   );
 }
