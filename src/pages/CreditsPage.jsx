@@ -27,7 +27,7 @@ import LanguageIcon from "@mui/icons-material/Language"; // Icona per il sito we
 
 const updateLog = [
   {
-    version: "0.9.22S",
+    version: "0.9.22",
     date: "06/10/2025",
     changes: [
       {
