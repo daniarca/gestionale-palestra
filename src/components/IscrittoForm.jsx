@@ -1,6 +1,6 @@
-// File: src/components/IscrittoForm.jsx
+// File: src/components/IscrittoForm.jsx (VERSIONE PULITA)
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   TextField,
@@ -18,113 +18,93 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
   Switch,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import { CodiceFiscaleUtils } from "@marketto/codice-fiscale-utils";
+import belfioreConnector from "@marketto/belfiore-connector-embedded";
+import { LIVELLI, CATEGORIE, TIPI_CELLULARE } from "../utils/constants.js";
 
-// Nuove costanti per Livelli e Categorie (per ginnastica artistica)
-const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
-const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
-const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Nonno", "Nonna", "Altro"];
+const initialFormData = {
+  nome: "",
+  cognome: "",
+  dataNascita: "",
+  luogoNascita: "",
+  provinciaNascita: "",
+  sesso: "",
+  residenza: "",
+  cap: "",
+  via: "",
+  numeroCivico: "",
+  cellulare1: "",
+  cellulare1Tipo: "Mamma",
+  cellulare2: "",
+  cellulare2Tipo: "",
+  email: "",
+  codiceFiscale: "",
+  fgiTessera: "",
+  asiTessera: "",
+  csenTessera: "",
+  nomeGenitore: "",
+  cfGenitore: "",
+  annotazioni: "",
+  haCertificato: false,
+  scadenzaCertificato: "",
+  scadenzaAbbonamento: "",
+  sede: "Frascati",
+  quotaIscrizione: "",
+  quotaMensile: "",
+  livello: "",
+  categoria: "",
+  isCalisthenics: false, // Aggiunto isCalisthenics qui
+};
 
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
-  // STATI DEL FORM
-  const [nome, setNome] = useState("");
-  const [cognome, setCognome] = useState("");
-  const [dataNascita, setDataNascita] = useState("");
-  const [luogoNascita, setLuogoNascita] = useState("");
-  const [residenza, setResidenza] = useState("");
-  const [cap, setCap] = useState("");
-  const [via, setVia] = useState("");
-  const [numeroCivico, setNumeroCivico] = useState("");
-  const [cellulare1, setCellulare1] = useState("");
-  const [cellulare1Tipo, setCellulare1Tipo] = useState("Mamma");
-  const [cellulare2, setCellulare2] = useState("");
-  const [cellulare2Tipo, setCellulare2Tipo] = useState("");
-  const [email, setEmail] = useState("");
-  const [codiceFiscale, setCodiceFiscale] = useState("");
-  const [fgiTessera, setFgiTessera] = useState("");
-  const [asiTessera, setAsiTessera] = useState("");
-  const [csenTessera, setCsenTessera] = useState("");
-  const [nomeGenitore, setNomeGenitore] = useState("");
-  const [cfGenitore, setCfGenitore] = useState("");
-  const [annotazioni, setAnnotazioni] = useState("");
-  const [haCertificato, setHaCertificato] = useState(false);
-  const [scadenzaCertificato, setScadenzaCertificato] = useState("");
-  const [scadenzaAbbonamento, setScadenzaAbbonamento] = useState("");
-  const [sede, setSede] = useState("Frascati");
-  const [quotaIscrizione, setQuotaIscrizione] = useState("");
-  const [quotaMensile, setQuotaMensile] = useState("");
-  const [livello, setLivello] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [isCalisthenics, setIsCalisthenics] = useState(false);
+  const [formData, setFormData] = useState(initialFormData);
 
   const resetForm = () => {
-    setNome("");
-    setCognome("");
-    setDataNascita("");
-    setLuogoNascita("");
-    setResidenza("");
-    setCap("");
-    setVia("");
-    setNumeroCivico("");
-    setCellulare1("");
-    setCellulare1Tipo("Mamma");
-    setCellulare2("");
-    setCellulare2Tipo("");
-    setEmail("");
-    setCodiceFiscale("");
-  setFgiTessera("");
-  setAsiTessera("");
-  setCsenTessera("");
-    setNomeGenitore("");
-    setCfGenitore("");
-    setAnnotazioni("");
-    setHaCertificato(false);
-    setScadenzaCertificato("");
-    setScadenzaAbbonamento("");
-    setSede("Frascati");
-    setQuotaIscrizione("");
-    setQuotaMensile("");
-    setLivello("");
-    setCategoria("");
-    setIsCalisthenics(false);
+    setFormData(initialFormData);
     onClose();
+  };
+
+  useEffect(() => {
+    if (open) {
+      setFormData(initialFormData);
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    // Correzione: Aggiunto type === "switch" per la variabile isCalisthenics
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" || type === "switch" ? checked : value,
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!nome || !cognome) {
+    if (!formData.nome || !formData.cognome) {
       alert("Inserisci almeno nome e cognome.");
       return;
     }
+    
+    // Destruttura i campi che richiedono formattazione o trattamento speciale
+    const { haCertificato, scadenzaCertificato, scadenzaAbbonamento, isCalisthenics, quotaIscrizione, quotaMensile, ...rest } = formData;
+
     const nuovoIscritto = {
-      nome,
-      cognome,
-      dataNascita,
-      luogoNascita,
-      residenza,
-      cap,
-      via,
-      numeroCivico,
-      cellulare1,
-      cellulare1Tipo,
-      cellulare2: cellulare2 || null,
-      cellulare2Tipo: cellulare2 ? cellulare2Tipo || "Altro" : null,
-      email,
-      codiceFiscale,
-  fgiTessera,
-  asiTessera,
-  csenTessera,
-      nomeGenitore,
-      cfGenitore,
-      annotazioni,
-      sede,
+      ...rest, // Includi tutti gli altri campi (nome, cognome, CF, email, ecc.)
+      
+      // Formatta i campi speciali
+      cellulare2: formData.cellulare2 || null,
+      cellulare2Tipo: formData.cellulare2 ? formData.cellulare2Tipo || "Altro" : null,
       quotaIscrizione: parseFloat(quotaIscrizione) || 0,
       quotaMensile: parseFloat(quotaMensile) || 0,
-      livello,
-      categoria,
-      isCalisthenics: isCalisthenics, // Assicuriamoci che il valore booleano sia passato
+      isCalisthenics: isCalisthenics, // Passa il booleano
+
+      // Dati di sistema e strutturati
       stato: "attivo",
       dataIscrizione: new Date().toISOString().split("T")[0],
       certificatoMedico: {
@@ -133,14 +113,44 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       },
       abbonamento: { scadenza: scadenzaAbbonamento },
     };
+    
     onIscrittoAggiunto(nuovoIscritto);
-    resetForm();
+    onClose();
   };
 
   const handleClose = () => {
     onClose();
   };
 
+  const handleCalcolaCodiceFiscale = async () => {
+    const { nome, cognome, dataNascita, sesso, luogoNascita, provinciaNascita } = formData;
+    if (!nome || !cognome || !dataNascita || !sesso || !luogoNascita || !provinciaNascita) {
+      alert(
+        "Per calcolare il codice fiscale, compila Nome, Cognome, Data, Sesso, Luogo e Provincia di Nascita."
+      );
+      return;
+    }
+
+    try {
+      const [year, month, day] = dataNascita.split("-").map(Number);
+
+      const cfUtils = new CodiceFiscaleUtils(belfioreConnector);
+
+      const cf = await cfUtils.parser.encodeCf({
+        firstName: nome.trim(),
+        lastName: cognome.trim(),
+        gender: sesso,
+        day,
+        month: month - 1, // month è 0-indexed in codice-fiscale-utils
+        year,
+        place: luogoNascita.trim(),
+      });
+      setFormData((prev) => ({ ...prev, codiceFiscale: cf }));
+    } catch (error) {
+      console.error("Errore nel calcolo del codice fiscale:", error);
+      alert(`Non è stato possibile calcolare il codice fiscale. Assicurati che il comune ("${luogoNascita}") e la provincia ("${provinciaNascita}") di nascita siano scritti correttamente.`);
+    }
+  };
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
       <DialogTitle>Nuova Iscrizione Socio</DialogTitle>
@@ -163,8 +173,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Nome *"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleChange}
                     required
                   />
                 </Grid>
@@ -174,19 +185,33 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Cognome *"
-                    value={cognome}
-                    onChange={(e) => setCognome(e.target.value)}
+                    name="cognome"
+                    value={formData.cognome}
+                    onChange={handleChange}
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={8}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     size="small"
                     fullWidth
                     variant="outlined"
                     label="Luogo di Nascita"
-                    value={luogoNascita}
-                    onChange={(e) => setLuogoNascita(e.target.value)}
+                    name="luogoNascita"
+                    value={formData.luogoNascita}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    label="Prov."
+                    name="provinciaNascita"
+                    value={formData.provinciaNascita}
+                    helperText="Es. RM"
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -195,21 +220,42 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Data di Nascita"
+                    name="dataNascita"
                     type="date"
-                    value={dataNascita}
-                    onChange={(e) => setDataNascita(e.target.value)}
+                    value={formData.dataNascita}
+                    onChange={handleChange}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    variant="outlined"
-                    label="Codice Fiscale Atleta"
-                    value={codiceFiscale}
-                    onChange={(e) => setCodiceFiscale(e.target.value)}
-                  />
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small" variant="outlined">
+                    <InputLabel>Sesso</InputLabel>
+                    <Select
+                      name="sesso"
+                      label="Sesso"
+                      value={formData.sesso}
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="M">Maschio</MenuItem>
+                      <MenuItem value="F">Femmina</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      variant="outlined"
+                      label="Codice Fiscale Atleta"
+                      name="codiceFiscale"
+                      value={formData.codiceFiscale}
+                      onChange={handleChange}
+                    />
+                    <IconButton onClick={handleCalcolaCodiceFiscale} color="primary" title="Calcola Codice Fiscale">
+                      <AutoFixHighIcon />
+                    </IconButton>
+                  </Box>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <TextField
@@ -217,8 +263,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="FGI Numero Tessera"
-                    value={fgiTessera}
-                    onChange={(e) => setFgiTessera(e.target.value)}
+                    name="fgiTessera"
+                    value={formData.fgiTessera}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -227,8 +274,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="ASI Numero Tessera"
-                    value={asiTessera}
-                    onChange={(e) => setAsiTessera(e.target.value)}
+                    name="asiTessera"
+                    value={formData.asiTessera}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -237,8 +285,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="CSEN Numero Tessera"
-                    value={csenTessera}
-                    onChange={(e) => setCsenTessera(e.target.value)}
+                    name="csenTessera"
+                    value={formData.csenTessera}
+                    onChange={handleChange}
                   />
                 </Grid>
               </Grid>
@@ -258,8 +307,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Indirizzo (Via / Piazza)"
-                    value={via}
-                    onChange={(e) => setVia(e.target.value)}
+                    name="via"
+                    value={formData.via}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -268,8 +318,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="N. Civico"
-                    value={numeroCivico}
-                    onChange={(e) => setNumeroCivico(e.target.value)}
+                    name="numeroCivico"
+                    value={formData.numeroCivico}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={9}>
@@ -278,8 +329,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Città di Residenza"
-                    value={residenza}
-                    onChange={(e) => setResidenza(e.target.value)}
+                    name="residenza"
+                    value={formData.residenza}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -288,8 +340,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="CAP"
-                    value={cap}
-                    onChange={(e) => setCap(e.target.value)}
+                    name="cap"
+                    value={formData.cap}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -298,9 +351,10 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Email"
+                    name="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -309,8 +363,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Cellulare 1"
-                    value={cellulare1}
-                    onChange={(e) => setCellulare1(e.target.value)}
+                    name="cellulare1"
+                    value={formData.cellulare1}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={2}>
@@ -319,8 +374,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     <Select
                       name="cellulare1Tipo"
                       label="Tipo 1"
-                      value={cellulare1Tipo}
-                      onChange={(e) => setCellulare1Tipo(e.target.value)}
+                      value={formData.cellulare1Tipo}
+                      onChange={handleChange}
                       displayEmpty
                     >
                       {TIPI_CELLULARE.map((tipo) => (
@@ -337,8 +392,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Cellulare 2 (Opzionale)"
-                    value={cellulare2}
-                    onChange={(e) => setCellulare2(e.target.value)}
+                    name="cellulare2"
+                    value={formData.cellulare2}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={2}>
@@ -347,8 +403,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     <Select
                       name="cellulare2Tipo"
                       label="Tipo 2"
-                      value={cellulare2Tipo}
-                      onChange={(e) => setCellulare2Tipo(e.target.value)}
+                      value={formData.cellulare2Tipo}
+                      onChange={handleChange}
                       displayEmpty
                     >
                       <MenuItem value="" disabled>
@@ -379,8 +435,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     <Select
                       name="livello"
                       label="Livello"
-                      value={livello}
-                      onChange={(e) => setLivello(e.target.value)}
+                      value={formData.livello}
+                      onChange={handleChange}
                       displayEmpty
                     >
                       <MenuItem value="" disabled>
@@ -400,8 +456,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     <Select
                       name="categoria"
                       label="Categoria"
-                      value={categoria}
-                      onChange={(e) => setCategoria(e.target.value)}
+                      value={formData.categoria}
+                      onChange={handleChange}
                       displayEmpty
                     >
                       <MenuItem value="" disabled>
@@ -423,8 +479,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     name="quotaIscrizione"
                     label="Quota Iscrizione (€)"
                     type="number"
-                    value={quotaIscrizione}
-                    onChange={(e) => setQuotaIscrizione(e.target.value)}
+                    value={formData.quotaIscrizione}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -435,8 +491,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     name="quotaMensile"
                     label="Quota Mensile Prevista (€)"
                     type="number"
-                    value={quotaMensile}
-                    onChange={(e) => setQuotaMensile(e.target.value)}
+                    value={formData.quotaMensile}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -445,8 +501,8 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     <Select
                       name="sede"
                       label="Sede di Iscrizione"
-                      value={sede}
-                      onChange={(e) => setSede(e.target.value)}
+                      value={formData.sede}
+                      onChange={handleChange}
                     >
                       <MenuItem value="Frascati">Frascati</MenuItem>
                       <MenuItem value="Rocca Priora">Rocca Priora</MenuItem>
@@ -459,9 +515,10 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Scadenza Primo Abbonamento"
+                    name="scadenzaAbbonamento"
                     type="date"
-                    value={scadenzaAbbonamento}
-                    onChange={(e) => setScadenzaAbbonamento(e.target.value)}
+                    value={formData.scadenzaAbbonamento}
+                    onChange={handleChange}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -492,14 +549,15 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={haCertificato}
-                        onChange={(e) => setHaCertificato(e.target.checked)}
+                        name="haCertificato"
+                        checked={formData.haCertificato}
+                        onChange={handleChange}
                       />
                     }
                     label="Certificato Medico Presente"
                   />
                 </Grid>
-                {haCertificato && (
+                {formData.haCertificato && (
                   <Grid item xs={12} sm={6}>
                     <TextField
                       size="small"
@@ -507,8 +565,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                       variant="outlined"
                       label="Scadenza Certificato Medico"
                       type="date"
-                      value={scadenzaCertificato}
-                      onChange={(e) => setScadenzaCertificato(e.target.value)}
+                      name="scadenzaCertificato"
+                      value={formData.scadenzaCertificato}
+                      onChange={handleChange}
                       InputLabelProps={{ shrink: true }}
                     />
                   </Grid>
@@ -521,8 +580,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     label="Annotazioni Segreteria"
                     multiline
                     rows={3}
-                    value={annotazioni}
-                    onChange={(e) => setAnnotazioni(e.target.value)}
+                    name="annotazioni"
+                    value={formData.annotazioni}
+                    onChange={handleChange}
                   />
                 </Grid>
               </Grid>
@@ -542,8 +602,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Cognome e Nome Genitore"
-                    value={nomeGenitore}
-                    onChange={(e) => setNomeGenitore(e.target.value)}
+                    name="nomeGenitore"
+                    value={formData.nomeGenitore}
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -552,8 +613,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     fullWidth
                     variant="outlined"
                     label="Codice Fiscale Genitore"
-                    value={cfGenitore}
-                    onChange={(e) => setCfGenitore(e.target.value)}
+                    name="cfGenitore"
+                    value={formData.cfGenitore}
+                    onChange={handleChange}
                   />
                 </Grid>
               </Grid>

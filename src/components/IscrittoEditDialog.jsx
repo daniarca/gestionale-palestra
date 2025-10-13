@@ -1,5 +1,3 @@
-// File: src/components/IscrittoEditDialog.jsx
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -17,16 +15,59 @@ import {
   Select,
   Divider,
   Typography,
+  IconButton,
+  Box,
   Switch,
 } from "@mui/material";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 
-// Nuove costanti per Livelli e Categorie
-const LIVELLI = ["Base", "Intermedio", "Avanzato", "Agonismo"];
-const CATEGORIE = ["Baby", "Allieva", "Junior", "Senior"];
-const TIPI_CELLULARE = ["Personale", "Mamma", "Papà", "Nonno", "Nonna", "Altro"];
+// === Importazione corretta per i Constants ===
+import { LIVELLI, CATEGORIE, TIPI_CELLULARE } from "../utils/constants.js";
+
+// === SOLUZIONE ALL'ERRORE: CAMBIARE IL TIPO DI IMPORTAZIONE ===
+// 1. Usiamo l'import di default (senza {}) per BelfioreConnectorEmbedded.
+import BelfioreConnectorEmbedded from "@marketto/belfiore-connector-embedded";
+// 2. Usiamo l'import di default anche per CodiceFiscaleUtils (per sicurezza).
+import CodiceFiscaleUtils from "@marketto/codice-fiscale-utils"; 
+// =============================================================
+
+// Variabile esterna per l'istanza globale e per evitare ricalcoli
+let codiceFiscaleInstance = null; 
 
 function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
   const [formData, setFormData] = useState({});
+  // Stato per gestire il caricamento della libreria CF
+  const [isCfReady, setIsCfReady] = useState(false);
+
+  // === Effetto di Inizializzazione Asincrona della Libreria CF ===
+  useEffect(() => {
+    async function initCodiceFiscale() {
+      if (!codiceFiscaleInstance) {
+        try {
+          // Creazione dell'istanza del database dei comuni (Connettore Belfiore)
+          const belfioreConnector = new BelfioreConnectorEmbedded();
+          
+          // Inizializzazione della libreria principale con il connettore
+          codiceFiscaleInstance = new CodiceFiscaleUtils(belfioreConnector);
+          
+          // Potenziale attesa per l'inizializzazione del connettore (precauzione)
+          if (belfioreConnector.ready) { 
+              await belfioreConnector.ready;
+          }
+
+          setIsCfReady(true);
+        } catch (e) {
+          console.error("ERRORE CRITICO: Impossibile inizializzare CodiceFiscaleUtils", e);
+          // In caso di errore, assicurati che la funzionalità sia disabilitata
+          setIsCfReady(false);
+        }
+      } else {
+        setIsCfReady(true);
+      }
+    }
+    initCodiceFiscale();
+  }, []);
+  // ===============================================================
 
   useEffect(() => {
     if (iscritto) {
@@ -34,6 +75,8 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
         ...iscritto,
         haCertificato: iscritto.certificatoMedico?.presente || false,
         scadenzaCertificato: iscritto.certificatoMedico?.scadenza || "",
+        provinciaNascita: iscritto.provinciaNascita || "",
+        sesso: iscritto.sesso || "",
         scadenzaAbbonamento: iscritto.abbonamento?.scadenza || "",
         livello: iscritto.livello || "",
         categoria: iscritto.categoria || "",
@@ -72,9 +115,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       quotaIscrizione,
       quotaMensile,
       codiceAssicurazione,
-  fgiTessera,
-  asiTessera,
-  csenTessera,
+      fgiTessera,
+      asiTessera,
+      csenTessera,
       cellulare,
       cellulare1,
       cellulare1Tipo,
@@ -100,9 +143,9 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       categoria,
       quotaIscrizione: parseFloat(quotaIscrizione) || 0,
       quotaMensile: parseFloat(quotaMensile) || 0,
-  fgiTessera,
-  asiTessera,
-  csenTessera,
+      fgiTessera,
+      asiTessera,
+      csenTessera,
       cellulare1,
       cellulare1Tipo,
       cellulare2: finalCellulare2,
@@ -110,6 +153,54 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       isCalisthenics: isCalisthenics, // <-- ECCO LA CORREZIONE!
     };
     onSave(dataToSave);
+  };
+
+  const handleCalcolaCodiceFiscale = async () => {
+    // Blocco di controllo: verifica che la libreria sia pronta
+    if (!isCfReady || !codiceFiscaleInstance) {
+        alert("La funzionalità di calcolo del Codice Fiscale non è ancora pronta. Attendi o controlla gli errori nella console.");
+        return;
+    }
+
+    const { nome, cognome, dataNascita, sesso, luogoNascita, provinciaNascita } =
+      formData;
+    if (
+      !nome ||
+      !cognome ||
+      !dataNascita ||
+      !sesso ||
+      !luogoNascita ||
+      !provinciaNascita
+    ) {
+      alert(
+        "Per calcolare il codice fiscale, compila Nome, Cognome, Data, Sesso, Luogo e Provincia di Nascita."
+      );
+      return;
+    }
+
+    try {
+      // dataNascita è garantita dal type="date" essere "YYYY-MM-DD"
+      const [year, month, day] = dataNascita.split("-").map(Number);
+
+      // Chiama il metodo compute sull'istanza inizializzata
+      const cf = await codiceFiscaleInstance.compute({
+        // Pulizia e normalizzazione degli input per la libreria
+        name: nome.trim(),
+        surname: cognome.trim(),
+        gender: sesso,
+        day,
+        month, 
+        year,
+        birthplace: luogoNascita.trim().toUpperCase(),
+        birthplaceProvincia: provinciaNascita.trim().toUpperCase(),
+      });
+      setFormData((prev) => ({ ...prev, codiceFiscale: cf }));
+    } catch (error) {
+      console.error("Errore nel calcolo del codice fiscale:", error);
+      alert(
+        `Non è stato possibile calcolare il codice fiscale. Assicurati che il comune ("${luogoNascita}") e la provincia ("${provinciaNascita}") di nascita siano scritti correttamente.`
+      );
+    }
   };
 
   if (!iscritto) return null;
@@ -121,7 +212,6 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3} sx={{ pt: 1 }}>
-          {/* ... il resto del JSX rimane invariato ... */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
               Dati Anagrafici Base
@@ -148,13 +238,24 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={8}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   margin="dense"
                   name="luogoNascita"
                   label="Luogo di Nascita"
                   value={formData.luogoNascita || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="provinciaNascita"
+                  label="Prov."
+                  value={formData.provinciaNascita || ""}
+                  helperText="Es. RM"
                   onChange={handleChange}
                 />
               </Grid>
@@ -170,15 +271,40 @@ function IscrittoEditDialog({ iscritto, open, onClose, onSave }) {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} sm={12}>
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  name="codiceFiscale"
-                  label="Codice Fiscale Atleta"
-                  value={formData.codiceFiscale || ""}
-                  onChange={handleChange}
-                />
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel>Sesso</InputLabel>
+                  <Select
+                    name="sesso"
+                    label="Sesso"
+                    value={formData.sesso || ""}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="M">Maschio</MenuItem>
+                    <MenuItem value="F">Femmina</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <TextField
+                    fullWidth
+                    margin="dense"
+                    name="codiceFiscale"
+                    label="Codice Fiscale Atleta"
+                    value={formData.codiceFiscale || ""}
+                    onChange={handleChange}
+                  />
+                  <IconButton
+                    onClick={handleCalcolaCodiceFiscale}
+                    color="primary"
+                    title={isCfReady ? "Calcola Codice Fiscale" : "Caricamento in corso..."}
+                    // Disabilita il pulsante finché la libreria non è pronta
+                    disabled={!isCfReady} 
+                  >
+                    <AutoFixHighIcon />
+                  </IconButton>
+                </Box>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <TextField
