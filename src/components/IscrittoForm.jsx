@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Switch,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -74,6 +75,68 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  // STATI DEL FORM
+  const [nome, setNome] = useState("");
+  const [cognome, setCognome] = useState("");
+  const [dataNascita, setDataNascita] = useState("");
+  const [luogoNascita, setLuogoNascita] = useState("");
+  const [residenza, setResidenza] = useState("");
+  const [cap, setCap] = useState("");
+  const [via, setVia] = useState("");
+  const [numeroCivico, setNumeroCivico] = useState("");
+  const [cellulare1, setCellulare1] = useState("");
+  const [cellulare1Tipo, setCellulare1Tipo] = useState("Mamma");
+  const [cellulare2, setCellulare2] = useState("");
+  const [cellulare2Tipo, setCellulare2Tipo] = useState("");
+  const [email, setEmail] = useState("");
+  const [codiceFiscale, setCodiceFiscale] = useState("");
+  const [fgiTessera, setFgiTessera] = useState("");
+  const [asiTessera, setAsiTessera] = useState("");
+  const [csenTessera, setCsenTessera] = useState("");
+  const [nomeGenitore, setNomeGenitore] = useState("");
+  const [cfGenitore, setCfGenitore] = useState("");
+  const [annotazioni, setAnnotazioni] = useState("");
+  const [haCertificato, setHaCertificato] = useState(false);
+  const [scadenzaCertificato, setScadenzaCertificato] = useState("");
+  const [scadenzaAbbonamento, setScadenzaAbbonamento] = useState("");
+  const [sede, setSede] = useState("Frascati");
+  const [quotaIscrizione, setQuotaIscrizione] = useState("");
+  const [quotaMensile, setQuotaMensile] = useState("");
+  const [livello, setLivello] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [isCalisthenics, setIsCalisthenics] = useState(false);
+
+  const resetForm = () => {
+    setNome("");
+    setCognome("");
+    setDataNascita("");
+    setLuogoNascita("");
+    setResidenza("");
+    setCap("");
+    setVia("");
+    setNumeroCivico("");
+    setCellulare1("");
+    setCellulare1Tipo("Mamma");
+    setCellulare2("");
+    setCellulare2Tipo("");
+    setEmail("");
+    setCodiceFiscale("");
+  setFgiTessera("");
+  setAsiTessera("");
+  setCsenTessera("");
+    setNomeGenitore("");
+    setCfGenitore("");
+    setAnnotazioni("");
+    setHaCertificato(false);
+    setScadenzaCertificato("");
+    setScadenzaAbbonamento("");
+    setSede("Frascati");
+    setQuotaIscrizione("");
+    setQuotaMensile("");
+    setLivello("");
+    setCategoria("");
+    setIsCalisthenics(false);
+    onClose();
   };
 
   const handleSubmit = (e) => {
@@ -90,6 +153,32 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       cellulare2Tipo: formData.cellulare2 ? formData.cellulare2Tipo || "Altro" : null,
       quotaIscrizione: parseFloat(formData.quotaIscrizione) || 0,
       quotaMensile: parseFloat(formData.quotaMensile) || 0,
+      nome,
+      cognome,
+      dataNascita,
+      luogoNascita,
+      residenza,
+      cap,
+      via,
+      numeroCivico,
+      cellulare1,
+      cellulare1Tipo,
+      cellulare2: cellulare2 || null,
+      cellulare2Tipo: cellulare2 ? cellulare2Tipo || "Altro" : null,
+      email,
+      codiceFiscale,
+  fgiTessera,
+  asiTessera,
+  csenTessera,
+      nomeGenitore,
+      cfGenitore,
+      annotazioni,
+      sede,
+      quotaIscrizione: parseFloat(quotaIscrizione) || 0,
+      quotaMensile: parseFloat(quotaMensile) || 0,
+      livello,
+      categoria,
+      isCalisthenics: isCalisthenics, // Assicuriamoci che il valore booleano sia passato
       stato: "attivo",
       dataIscrizione: new Date().toISOString().split("T")[0],
       certificatoMedico: {
@@ -505,6 +594,18 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     value={formData.scadenzaAbbonamento}
                     onChange={handleChange}
                     InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isCalisthenics}
+                        onChange={(e) => setIsCalisthenics(e.target.checked)}
+                        name="isCalisthenics"
+                      />
+                    }
+                    label="Iscritto a Calisthenics"
                   />
                 </Grid>
               </Grid>
