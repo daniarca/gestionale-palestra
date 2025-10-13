@@ -1,4 +1,4 @@
-// File: src/components/IscrittoForm.jsx (VERSIONE PULITA)
+// File: src/components/IscrittoForm.jsx (VERSIONE CORRETTA)
 
 import { useEffect, useState } from "react";
 import {
@@ -90,16 +90,26 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       alert("Inserisci almeno nome e cognome.");
       return;
     }
-    
+
     // Destruttura i campi che richiedono formattazione o trattamento speciale
-    const { haCertificato, scadenzaCertificato, scadenzaAbbonamento, isCalisthenics, quotaIscrizione, quotaMensile, ...rest } = formData;
+    const {
+      haCertificato,
+      scadenzaCertificato,
+      scadenzaAbbonamento,
+      isCalisthenics,
+      quotaIscrizione,
+      quotaMensile,
+      ...rest
+    } = formData;
 
     const nuovoIscritto = {
       ...rest, // Includi tutti gli altri campi (nome, cognome, CF, email, ecc.)
-      
+
       // Formatta i campi speciali
       cellulare2: formData.cellulare2 || null,
-      cellulare2Tipo: formData.cellulare2 ? formData.cellulare2Tipo || "Altro" : null,
+      cellulare2Tipo: formData.cellulare2
+        ? formData.cellulare2Tipo || "Altro"
+        : null,
       quotaIscrizione: parseFloat(quotaIscrizione) || 0,
       quotaMensile: parseFloat(quotaMensile) || 0,
       isCalisthenics: isCalisthenics, // Passa il booleano
@@ -113,7 +123,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       },
       abbonamento: { scadenza: scadenzaAbbonamento },
     };
-    
+
     onIscrittoAggiunto(nuovoIscritto);
     onClose();
   };
@@ -123,8 +133,22 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   };
 
   const handleCalcolaCodiceFiscale = async () => {
-    const { nome, cognome, dataNascita, sesso, luogoNascita, provinciaNascita } = formData;
-    if (!nome || !cognome || !dataNascita || !sesso || !luogoNascita || !provinciaNascita) {
+    const {
+      nome,
+      cognome,
+      dataNascita,
+      sesso,
+      luogoNascita,
+      provinciaNascita,
+    } = formData;
+    if (
+      !nome ||
+      !cognome ||
+      !dataNascita ||
+      !sesso ||
+      !luogoNascita ||
+      !provinciaNascita
+    ) {
       alert(
         "Per calcolare il codice fiscale, compila Nome, Cognome, Data, Sesso, Luogo e Provincia di Nascita."
       );
@@ -148,7 +172,9 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       setFormData((prev) => ({ ...prev, codiceFiscale: cf }));
     } catch (error) {
       console.error("Errore nel calcolo del codice fiscale:", error);
-      alert(`Non è stato possibile calcolare il codice fiscale. Assicurati che il comune ("${luogoNascita}") e la provincia ("${provinciaNascita}") di nascita siano scritti correttamente.`);
+      alert(
+        `Non è stato possibile calcolare il codice fiscale. Assicurati che il comune ("${luogoNascita}") e la provincia ("${provinciaNascita}") di nascita siano scritti correttamente.`
+      );
     }
   };
   return (
@@ -157,7 +183,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       <Box component="form" onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={3} sx={{ pt: 1 }}>
-            {/* ... il resto del JSX rimane invariato ... */}
             <Grid item xs={12}>
               <Typography
                 variant="subtitle1"
@@ -252,7 +277,11 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                       value={formData.codiceFiscale}
                       onChange={handleChange}
                     />
-                    <IconButton onClick={handleCalcolaCodiceFiscale} color="primary" title="Calcola Codice Fiscale">
+                    <IconButton
+                      onClick={handleCalcolaCodiceFiscale}
+                      color="primary"
+                      title="Calcola Codice Fiscale"
+                    >
                       <AutoFixHighIcon />
                     </IconButton>
                   </Box>
@@ -526,8 +555,10 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={isCalisthenics}
-                        onChange={(e) => setIsCalisthenics(e.target.checked)}
+                        // FIX APPLICATO QUI: usa formData.isCalisthenics
+                        checked={formData.isCalisthenics}
+                        // FIX APPLICATO QUI: usa la funzione handleChange
+                        onChange={handleChange}
                         name="isCalisthenics"
                       />
                     }
