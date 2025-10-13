@@ -1,4 +1,5 @@
 // File: src/services/firebaseService.js (AGGIORNATO)
+import moment from "moment";
 
 import {
   collection,
@@ -10,6 +11,7 @@ import {
   addDoc,
   deleteDoc,
   orderBy,
+  writeBatch,
   Timestamp, // Assicurati che Timestamp sia importato
 } from "firebase/firestore";
 import {
@@ -210,12 +212,16 @@ const formatEventFromFirestore = (doc) => {
     start: data.start.toDate().toISOString(),
     end: data.end ? data.end.toDate().toISOString() : null,
     description: data.description || "",
+    // Aggiungiamo i campi per il promemoria
+    reminderDate: data.reminderDate ? data.reminderDate.toDate().toISOString().split('T')[0] : null,
+    reminderSent: data.reminderSent || false,
   };
 };
 const formatEventForFirestore = (eventData) => {
   const { id, ...data } = eventData;
   return {
     ...data,
+    reminderDate: data.reminderDate ? Timestamp.fromDate(new Date(data.reminderDate)) : null,
     start: Timestamp.fromDate(new Date(data.start)),
     end: data.end ? Timestamp.fromDate(new Date(data.end)) : null,
   };
@@ -237,6 +243,16 @@ export const updateAgendaEvent = async (updatedEvent) => {
 };
 export const deleteAgendaEvent = async (eventId) => {
   await deleteDoc(doc(db, "agendaEvents", eventId));
+};
+
+/**
+ * Aggiorna parzialmente un evento nell'agenda senza formattare l'intero oggetto.
+ * Utile per modifiche semplici come l'aggiornamento di un flag.
+ */
+export const updateAgendaEventPartial = async (updatedEvent) => {
+  const { id, ...data } = updatedEvent;
+  const eventRef = doc(db, "agendaEvents", id);
+  await updateDoc(eventRef, data);
 };
 
 // --- SERVIZI PER REGISTRO PRESENZE TECNICI ---
@@ -281,4 +297,53 @@ export const updatePresenzaTecnico = async (updatedEvent) => {
 
 export const deletePresenzaTecnico = async (eventId) => {
   await deleteDoc(doc(db, PRESENZE_COLLECTION, eventId));
+};
+
+// --- SERVIZI PER PROMEMORIA AGENDA ---
+
+/**
+ * Controlla gli eventi con promemoria scaduti e non ancora inviati.
+ * @param {function} showReminder - La funzione per mostrare il dialogo di promemoria.
+ * @param {function} navigate - La funzione di navigazione di React Router.
+ */
+export const checkAndNotifyReminders = async (showReminder, navigate) => {
+  const today = moment().startOf('day').toDate();
+
+  try {
+    // 1. Query per trovare i promemoria scaduti e non ancora inviati
+    const q = query(
+      collection(db, "agendaEvents"),
+      // La query non può avere due filtri di disuguaglianza sullo stesso campo
+      // quindi filtriamo per reminderSent e poi verifichiamo la data in locale.
+      // Questo è un compromesso necessario per le limitazioni di Firestore.
+      // Per performance migliori, si potrebbe usare una Cloud Function che popola
+      // un campo "needsNotification" su cui fare la query.
+      // Per ora, questo approccio è sufficiente.
+      where("reminderSent", "==", false),
+      where("reminderDate", "!=", null)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return; // Nessun promemoria da mostrare
+    }
+
+    querySnapshot.forEach((doc) => {
+      const eventData = doc.data();
+      // Filtro data lato client
+      if (moment(eventData.reminderDate.toDate()).isSameOrBefore(today, 'day')) {
+        // Usiamo formatEventFromFirestore per avere un oggetto evento consistente
+        const event = formatEventFromFirestore(doc);
+        const formattedDate = moment(event.start).format('DD/MM/YYYY');
+        
+        const message = `Ricorda l'evento "${event.title}" del ${formattedDate}.`;
+        showReminder(message, event);
+        // L'aggiornamento a reminderSent=true viene gestito dal contesto
+        // quando l'utente clicca "Non mostrare più" o chiude il dialogo.
+      }
+    });
+  } catch (error) {
+    console.error("Errore nel controllo dei promemoria:", error);
+  }
 };

@@ -36,6 +36,25 @@ const updateLog = [
     ]
   },
     {
+    version: "0.9.21",
+    date: "11/10/2025",
+    changes: [
+      { type: 'NEW', text: "Aggiunta la gestione dell'iscrizione al corso 'Calisthenics' per ogni socio." },
+      { type: 'IMPROVEMENT', text: "Inserito un interruttore (toggle) nei moduli di creazione/modifica per l'iscrizione a Calisthenics." },
+      { type: 'IMPROVEMENT', text: "Aggiunto un indicatore visivo (icona 'C') nella lista iscritti per identificare rapidamente i partecipanti al corso." },
+      { type: 'FIX', text: "Risolto un bug che impediva il corretto salvataggio dello stato 'Calisthenics' durante la modifica di un socio." },
+    ]
+  },
+    {
+    version: "0.9.20",
+    date: "10/10/2025",
+    changes: [
+      { type: 'NEW', text: "Implementato un sistema completo di promemoria per gli eventi in agenda, con notifiche e un'icona riepilogativa nella barra superiore." },
+      { type: 'IMPROVEMENT', text: "Le notifiche dei promemoria ora appaiono come un dialogo modale al centro dello schermo per una maggiore visibilità e interazione." },
+      { type: 'IMPROVEMENT', text: "Aggiunta un'icona 'sveglia' nella barra superiore che mostra un contatore e un elenco dei promemoria attivi per i prossimi 7 giorni." },
+    ]
+  },
+    {
     version: "0.9.19",
     date: "05/10/2025",
     changes: [

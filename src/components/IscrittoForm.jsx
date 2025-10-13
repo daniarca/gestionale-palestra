@@ -1,4 +1,4 @@
-// File: src/components/IscrittoForm.jsx
+// File: src/components/IscrittoForm.jsx (VERSIONE PULITA)
 
 import { useEffect, useState } from "react";
 import {
@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Switch,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -57,10 +58,16 @@ const initialFormData = {
   quotaMensile: "",
   livello: "",
   categoria: "",
+  isCalisthenics: false, // Aggiunto isCalisthenics qui
 };
 
 function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
   const [formData, setFormData] = useState(initialFormData);
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    onClose();
+  };
 
   useEffect(() => {
     if (open) {
@@ -70,9 +77,10 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // Correzione: Aggiunto type === "switch" per la variabile isCalisthenics
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" || type === "switch" ? checked : value,
     }));
   };
 
@@ -82,22 +90,30 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
       alert("Inserisci almeno nome e cognome.");
       return;
     }
-    const { haCertificato, scadenzaCertificato, ...rest } = formData;
+    
+    // Destruttura i campi che richiedono formattazione o trattamento speciale
+    const { haCertificato, scadenzaCertificato, scadenzaAbbonamento, isCalisthenics, quotaIscrizione, quotaMensile, ...rest } = formData;
 
     const nuovoIscritto = {
-      ...rest,
+      ...rest, // Includi tutti gli altri campi (nome, cognome, CF, email, ecc.)
+      
+      // Formatta i campi speciali
       cellulare2: formData.cellulare2 || null,
       cellulare2Tipo: formData.cellulare2 ? formData.cellulare2Tipo || "Altro" : null,
-      quotaIscrizione: parseFloat(formData.quotaIscrizione) || 0,
-      quotaMensile: parseFloat(formData.quotaMensile) || 0,
+      quotaIscrizione: parseFloat(quotaIscrizione) || 0,
+      quotaMensile: parseFloat(quotaMensile) || 0,
+      isCalisthenics: isCalisthenics, // Passa il booleano
+
+      // Dati di sistema e strutturati
       stato: "attivo",
       dataIscrizione: new Date().toISOString().split("T")[0],
       certificatoMedico: {
         presente: haCertificato,
         scadenza: haCertificato ? scadenzaCertificato : null,
       },
-      abbonamento: { scadenza: formData.scadenzaAbbonamento },
+      abbonamento: { scadenza: scadenzaAbbonamento },
     };
+    
     onIscrittoAggiunto(nuovoIscritto);
     onClose();
   };
@@ -118,7 +134,6 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
     try {
       const [year, month, day] = dataNascita.split("-").map(Number);
 
-      // It's better to instantiate CodiceFiscaleUtils once with the connector
       const cfUtils = new CodiceFiscaleUtils(belfioreConnector);
 
       const cf = await cfUtils.parser.encodeCf({
@@ -126,7 +141,7 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
         lastName: cognome.trim(),
         gender: sesso,
         day,
-        month: month - 1, // month is 0-indexed in codice-fiscale-utils
+        month: month - 1, // month è 0-indexed in codice-fiscale-utils
         year,
         place: luogoNascita.trim(),
       });
@@ -505,6 +520,18 @@ function IscrittoForm({ open, onClose, onIscrittoAggiunto }) {
                     value={formData.scadenzaAbbonamento}
                     onChange={handleChange}
                     InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isCalisthenics}
+                        onChange={(e) => setIsCalisthenics(e.target.checked)}
+                        name="isCalisthenics"
+                      />
+                    }
+                    label="Iscritto a Calisthenics"
                   />
                 </Grid>
               </Grid>

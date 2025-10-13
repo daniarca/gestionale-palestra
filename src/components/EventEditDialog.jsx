@@ -17,6 +17,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import TitleIcon from "@mui/icons-material/Title";
 import NotesIcon from "@mui/icons-material/Notes";
 import moment from "moment";
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 const colors = [
   "#F44336",
@@ -44,6 +45,7 @@ function EventEditDialog({ open, onClose, onSave, onDelete, event, dateInfo }) {
   const [end, setEnd] = useState("");
   const [allDay, setAllDay] = useState(true);
   const [color, setColor] = useState(colors[0]);
+  const [reminderDate, setReminderDate] = useState("");
   const [titleError, setTitleError] = useState(false);
 
   useEffect(() => {
@@ -58,6 +60,7 @@ function EventEditDialog({ open, onClose, onSave, onDelete, event, dateInfo }) {
       setDescription(event.description || "");
       setAllDay(isAllDay);
       setColor(event.color || colors[0]);
+      setReminderDate(event.reminderDate || "");
       setStart(
         moment(event.start).format(isAllDay ? "YYYY-MM-DD" : "YYYY-MM-DDTHH:mm")
       );
@@ -72,6 +75,7 @@ function EventEditDialog({ open, onClose, onSave, onDelete, event, dateInfo }) {
       setDescription("");
       setAllDay(isAllDay);
       setColor(colors[0]);
+      setReminderDate("");
       const startDate = dateInfo.startStr || dateInfo.dateStr;
       const endDate = dateInfo.endStr || dateInfo.dateStr;
       setStart(
@@ -96,6 +100,10 @@ function EventEditDialog({ open, onClose, onSave, onDelete, event, dateInfo }) {
       end: allDay ? null : end,
       allDay,
       color,
+      reminderDate: reminderDate || null,
+      // Se la data del promemoria viene modificata o aggiunta,
+      // reimposta lo stato di "inviato" a false.
+      reminderSent: event?.reminderDate === reminderDate ? event?.reminderSent : false,
     });
   };
 
@@ -192,6 +200,23 @@ function EventEditDialog({ open, onClose, onSave, onDelete, event, dateInfo }) {
               />
             )}
           </Box>
+
+          {/* DATA PROMEMORIA */}
+          <TextField
+            fullWidth
+            label="Data Promemoria (opzionale)"
+            type="date"
+            value={reminderDate}
+            onChange={(e) => setReminderDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <NotificationsActiveIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
           {/* COLORE EVENTO */}
           <Box>
