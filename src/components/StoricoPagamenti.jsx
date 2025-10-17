@@ -1,5 +1,4 @@
 // File: src/components/StoricoPagamenti.jsx
-
 import React, { useState, useMemo } from "react";
 import {
   Typography,
@@ -9,7 +8,13 @@ import {
   FormControl,
   Select,
   MenuItem,
+  IconButton,
+  Divider,
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { deletePayment } from "../firebase"; // ✅ import funzione di eliminazione
+import { doc, deleteDoc } from "firebase/firestore";
+import { db } from "../firebase"; // nel caso deletePayment non venga usato
 
 const annoSportivoMesi = [
   { nome: "Set", index: 8 },
@@ -43,6 +48,7 @@ function StoricoPagamenti({
 }) {
   const anniDisponibili = generaAnniSportivi();
   const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[1]);
+  const [eliminazioneInCorso, setEliminazioneInCorso] = useState(false);
 
   const datiAnnoSelezionato = useMemo(() => {
     const [startYear] = annoSelezionato.split("/");
@@ -70,7 +76,7 @@ function StoricoPagamenti({
       }
     });
 
-    return { pagamentiPerMese };
+    return { pagamentiFiltrati, pagamentiPerMese };
   }, [pagamenti, annoSelezionato]);
 
   const getMeseStatus = (meseIndex) => {
@@ -91,8 +97,37 @@ function StoricoPagamenti({
 
   const totalSubscriptionPaid = Number(quotaIscrizione) || 0;
 
+  // ✅ funzione eliminazione pagamento
+  const handleDelete = async (payment) => {
+    if (!window.confirm("Sei sicuro di voler eliminare questo pagamento?")) return;
+
+    setEliminazioneInCorso(true);
+    try {
+      if (payment.id) {
+        // Prova a usare la helper deletePayment se disponibile
+        await deletePayment("pagamenti", payment.id);
+      } else if (payment.docId) {
+        // Alcuni pagamenti potrebbero avere docId invece di id
+        await deletePayment("pagamenti", payment.docId);
+      } else {
+        console.warn("Pagamento senza id:", payment);
+        throw new Error("Pagamento senza ID documento");
+      }
+
+      alert("Pagamento eliminato con successo.");
+      // Aggiorna la UI rimuovendo il pagamento eliminato
+      window.location.reload();
+    } catch (e) {
+      console.error("Errore eliminazione pagamento:", e);
+      alert("Errore durante l'eliminazione del pagamento.");
+    } finally {
+      setEliminazioneInCorso(false);
+    }
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
+      {/* SEZIONE BOLLE (INVARIATA) */}
       <Box
         sx={{
           display: "flex",
@@ -116,6 +151,7 @@ function StoricoPagamenti({
           </Select>
         </FormControl>
       </Box>
+
       <Grid container spacing={1} sx={{ mt: 1 }}>
         <Grid item xs={2.4}>
           <Tooltip
@@ -186,6 +222,55 @@ function StoricoPagamenti({
           );
         })}
       </Grid>
+
+      {/* 🔽 NUOVA SEZIONE: elenco transazioni con possibilità di eliminazione */}
+      {datiAnnoSelezionato.pagamentiFiltrati.length > 0 && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" gutterBottom>
+            Transazioni registrate ({datiAnnoSelezionato.pagamentiFiltrati.length})
+          </Typography>
+
+          {datiAnnoSelezionato.pagamentiFiltrati.map((p) => (
+            <Box
+              key={p.id || p.docId}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                p: 1,
+                mb: 1,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                backgroundColor: "rgba(255,255,255,0.03)",
+              }}
+            >
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                  {p.tipo || "Pagamento"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {new Date(p.dataPagamento).toLocaleDateString("it-IT")} —{" "}
+                  {p.cifra?.toFixed(2)}€
+                </Typography>
+              </Box>
+              <Tooltip title="Elimina pagamento">
+                <span>
+                  <IconButton
+                    color="error"
+                    disabled={eliminazioneInCorso}
+                    onClick={() => handleDelete(p)}
+                    size="small"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          ))}
+        </>
+      )}
     </Box>
   );
 }

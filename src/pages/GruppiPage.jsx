@@ -1,3 +1,4 @@
+// src/pages/GruppiPage.jsx
 import React, { useState, useEffect } from "react";
 import {
   collection,
@@ -44,9 +45,9 @@ function GruppiPage({ iscrittiList }) {
   const [nomeGruppo, setNomeGruppo] = useState("");
   const [descrizioneGruppo, setDescrizioneGruppo] = useState("");
   const [staffSelezionato, setStaffSelezionato] = useState("");
-  const [giornoSettimana, setGiornoSettimana] = useState("");
-  const [oraInizio, setOraInizio] = useState("");
-  const [oraFine, setOraFine] = useState("");
+
+  // Nuovo: slots per la creazione (array di {giorno, oraInizio, oraFine})
+  const [slots, setSlots] = useState([{ giorno: "", oraInizio: "", oraFine: "" }]);
 
   const [membriDialogOpen, setMembriDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -75,11 +76,32 @@ function GruppiPage({ iscrittiList }) {
     fetchData();
   }, []);
 
+  // Slot helpers
+  const handleAddSlot = () => {
+    setSlots((s) => [...s, { giorno: "", oraInizio: "", oraFine: "" }]);
+  };
+
+  const handleRemoveSlot = (index) => {
+    setSlots((s) => s.filter((_, i) => i !== index));
+  };
+
+  const handleSlotChange = (index, field, value) => {
+    setSlots((s) => {
+      const copy = [...s];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
   const handleCreaGruppo = async (e) => {
     e.preventDefault();
     if (!nomeGruppo) return;
     const allenatore = staff.find((s) => s.id === staffSelezionato);
     try {
+      // Conserviamo solo slot validi (tutti e tre i campi)
+      const validSlots = slots.filter((s) => s.giorno && s.oraInizio && s.oraFine);
+
+      // Se non abbiamo alcuno slot valido ma esistevano i vecchi campi (compatibilità), non creiamo slot vuoti
       await addDoc(collection(db, "gruppi"), {
         nome: nomeGruppo,
         descrizione: descrizioneGruppo,
@@ -88,17 +110,16 @@ function GruppiPage({ iscrittiList }) {
         staffNome: allenatore
           ? `${allenatore.cognome} ${allenatore.nome}`
           : "Nessuno",
-        giornoSettimana,
-        oraInizio,
-        oraFine,
+        // Salviamo l'array slots (può essere vuoto)
+        slots: validSlots,
         sede: allenatore?.sede || "N/D",
       });
+
+      // reset form
       setNomeGruppo("");
       setDescrizioneGruppo("");
       setStaffSelezionato("");
-      setGiornoSettimana("");
-      setOraInizio("");
-      setOraFine("");
+      setSlots([{ giorno: "", oraInizio: "", oraFine: "" }]);
       setFormOpen(false);
       fetchData();
     } catch (error) {
@@ -107,6 +128,7 @@ function GruppiPage({ iscrittiList }) {
   };
 
   const handleUpdateGruppo = async (updatedGruppo) => {
+    // updatedGruppo è quello restituito dal dialog di editing: dovrebbe contenere slots
     const allenatore = staff.find((s) => s.id === updatedGruppo.staffId);
     const datiDaSalvare = {
       ...updatedGruppo,
@@ -133,14 +155,17 @@ function GruppiPage({ iscrittiList }) {
       console.error("Errore:", error);
     }
   };
+
   const handleOpenMembriDialog = (gruppo) => {
     setGruppoSelezionato(gruppo);
     setMembriDialogOpen(true);
   };
+
   const handleOpenEditDialog = (gruppo) => {
     setGruppoSelezionato(gruppo);
     setEditDialogOpen(true);
   };
+
   const handleSalvaMembri = async (gruppoId, nuoviMembriIds) => {
     try {
       const gruppoRef = doc(db, "gruppi", gruppoId);
@@ -150,6 +175,26 @@ function GruppiPage({ iscrittiList }) {
     } catch (error) {
       console.error("Errore:", error);
     }
+  };
+
+  // helper per mostrare gli slot in linea (es. "Lun 19:00-20:00, Sab 10:00-11:30")
+  const renderSlotsInline = (gruppo) => {
+    const groupSlots = Array.isArray(gruppo.slots) && gruppo.slots.length > 0
+      ? gruppo.slots
+      : // compatibilità: se non ci sono slots, proviamo a ricostruire da vecchi campi giorno/ora
+        (gruppo.giornoSettimana && (gruppo.oraInizio || gruppo.oraFine)
+          ? [{ giorno: gruppo.giornoSettimana || "", oraInizio: gruppo.oraInizio || "", oraFine: gruppo.oraFine || "" }]
+          : []);
+
+    return groupSlots
+      .map((s) => {
+        const giornoLabel = giorniSettimana.find((g) => g.value === s.giorno)?.label || s.giorno || "";
+        const inizio = s.oraInizio || "";
+        const fine = s.oraFine || "";
+        return `${giornoLabel} ${inizio}${inizio && "-" && fine ? "-" : ""}${fine ? fine : ""}`.trim();
+      })
+      .filter(Boolean)
+      .join(", ");
   };
 
   return (
@@ -182,6 +227,7 @@ function GruppiPage({ iscrittiList }) {
             {formOpen ? "Chiudi Form" : "Crea Gruppo"}
           </Button>
         </Box>
+
         <Collapse in={formOpen}>
           <Box component="form" onSubmit={handleCreaGruppo} sx={{ mt: 3 }}>
             <Grid container spacing={2}>
@@ -195,6 +241,18 @@ function GruppiPage({ iscrittiList }) {
                   onChange={(e) => setNomeGruppo(e.target.value)}
                 />
               </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  variant="outlined"
+                  label="Descrizione"
+                  value={descrizioneGruppo}
+                  onChange={(e) => setDescrizioneGruppo(e.target.value)}
+                />
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth size="small" variant="outlined">
                   <InputLabel shrink={true}>Allenatore</InputLabel>
@@ -204,8 +262,8 @@ function GruppiPage({ iscrittiList }) {
                     onChange={(e) => setStaffSelezionato(e.target.value)}
                     displayEmpty
                   >
-                    <MenuItem value="" disabled>
-                      Seleziona Allenatore
+                    <MenuItem value="">
+                      <em>Nessuno</em>
                     </MenuItem>
                     {staff.map((s) => (
                       <MenuItem key={s.id} value={s.id}>
@@ -215,84 +273,95 @@ function GruppiPage({ iscrittiList }) {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="small" variant="outlined">
-                  <InputLabel shrink={true}>Giorno</InputLabel>
-                  <Select
-                    label="Giorno"
-                    value={giornoSettimana}
-                    onChange={(e) => setGiornoSettimana(e.target.value)}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      Seleziona Giorno
-                    </MenuItem>
-                    {giorniSettimana.map((g) => (
-                      <MenuItem key={g.value} value={g.value}>
-                        {g.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+
+              {/* Slot dynamic */}
+              {slots.map((slot, i) => (
+                <React.Fragment key={i}>
+                  <Grid item xs={12} sm={4}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Giorno</InputLabel>
+                      <Select
+                        value={slot.giorno}
+                        label="Giorno"
+                        onChange={(e) => handleSlotChange(i, "giorno", e.target.value)}
+                      >
+                        <MenuItem value="">
+                          <em>Seleziona Giorno</em>
+                        </MenuItem>
+                        {giorniSettimana.map((g) => (
+                          <MenuItem key={g.value} value={g.value}>
+                            {g.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={3}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Inizio</InputLabel>
+                      <Select
+                        value={slot.oraInizio}
+                        label="Inizio"
+                        onChange={(e) => handleSlotChange(i, "oraInizio", e.target.value)}
+                      >
+                        <MenuItem value="">
+                          <em>Orario Inizio</em>
+                        </MenuItem>
+                        {orari.map((o) => (
+                          <MenuItem key={o} value={o}>
+                            {o}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={3}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Fine</InputLabel>
+                      <Select
+                        value={slot.oraFine}
+                        label="Fine"
+                        onChange={(e) => handleSlotChange(i, "oraFine", e.target.value)}
+                      >
+                        <MenuItem value="">
+                          <em>Orario Fine</em>
+                        </MenuItem>
+                        {orari.map((o) => (
+                          <MenuItem key={o} value={o}>
+                            {o}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={2} sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                    <Button color="error" onClick={() => handleRemoveSlot(i)}>
+                      Rimuovi
+                    </Button>
+                  </Grid>
+                </React.Fragment>
+              ))}
+
+              <Grid item xs={12}>
+                <Button onClick={handleAddSlot} startIcon={<AddCircleOutlineIcon />}>
+                  + Aggiungi Slot
+                </Button>
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small" variant="outlined">
-                  <InputLabel shrink={true}>Inizio</InputLabel>
-                  <Select
-                    label="Inizio"
-                    value={oraInizio}
-                    onChange={(e) => setOraInizio(e.target.value)}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      Orario Inizio
-                    </MenuItem>
-                    {orari.map((o) => (
-                      <MenuItem key={o} value={o}>
-                        {o}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small" variant="outlined">
-                  <InputLabel shrink={true}>Fine</InputLabel>
-                  <Select
-                    label="Fine"
-                    value={oraFine}
-                    onChange={(e) => setOraFine(e.target.value)}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      Orario Fine
-                    </MenuItem>
-                    {orari.map((o) => (
-                      <MenuItem key={o} value={o}>
-                        {o}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                sm={2}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                }}
-              >
+
+              <Grid item xs={12}>
                 <Button type="submit" variant="contained">
-                  Salva
+                  Salva Gruppo
                 </Button>
               </Grid>
             </Grid>
           </Box>
         </Collapse>
       </Paper>
+
+      {/* Elenco Gruppi */}
       <Paper sx={{ p: 2, borderRadius: 4 }}>
         <Typography variant="h6" gutterBottom>
           Elenco Gruppi ({gruppi.length})
@@ -306,10 +375,7 @@ function GruppiPage({ iscrittiList }) {
                     <IconButton onClick={() => handleOpenEditDialog(gruppo)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenMembriDialog(gruppo)}
-                    >
+                    <Button size="small" onClick={() => handleOpenMembriDialog(gruppo)}>
                       Membri
                     </Button>
                     <IconButton onClick={() => handleEliminaGruppo(gruppo.id)}>
@@ -320,13 +386,7 @@ function GruppiPage({ iscrittiList }) {
               >
                 <ListItemText
                   primary={gruppo.nome}
-                  secondary={`Allenatore: ${gruppo.staffNome} | Orario: ${
-                    giorniSettimana.find(
-                      (g) => g.value === gruppo.giornoSettimana
-                    )?.label || ""
-                  } ${gruppo.oraInizio || ""}-${gruppo.oraFine || ""} | ${
-                    gruppo.membri?.length || 0
-                  } membri`}
+                  secondary={`Allenatore: ${gruppo.staffNome || "Nessuno"} | Orari: ${renderSlotsInline(gruppo)} | ${gruppo.membri?.length || 0} membri`}
                 />
               </ListItem>
               {index < gruppi.length - 1 && <Divider />}
@@ -334,6 +394,8 @@ function GruppiPage({ iscrittiList }) {
           ))}
         </List>
       </Paper>
+
+      {/* Dialogs */}
       <GestisciMembriDialog
         open={membriDialogOpen}
         onClose={() => setMembriDialogOpen(false)}
@@ -345,10 +407,11 @@ function GruppiPage({ iscrittiList }) {
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         onSave={handleUpdateGruppo}
-        gruppo={gruppoSelezionato}
+        gruppo={gruppoSelezionato || {}}
         staff={staff}
       />
     </Box>
   );
 }
+
 export default GruppiPage;
