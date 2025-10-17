@@ -13,6 +13,8 @@ import {
   MenuItem,
   IconButton,
   Typography,
+  Divider,
+  Box,
 } from "@mui/material";
 import { AddCircleOutline, Delete } from "@mui/icons-material";
 import { giorniSettimana, orari } from "../utils/timeSlots.js";
@@ -24,7 +26,7 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
   useEffect(() => {
     if (gruppo) {
       setFormData(gruppo);
-      setSlots(gruppo.slots || []); // gestisce gruppi vecchi senza slots
+      setSlots(gruppo.slots || []);
     }
   }, [gruppo, open]);
 
@@ -34,7 +36,7 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
   };
 
   const handleAddSlot = () => {
-    setSlots([...slots, { giorno: "", oraInizio: "", oraFine: "" }]);
+    setSlots([...slots, { giorno: "", oraInizio: "", oraFine: "", sede: "" }]);
   };
 
   const handleRemoveSlot = (index) => {
@@ -56,65 +58,94 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Modifica Gruppo: {formData.nome}</DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2} sx={{ pt: 1 }}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              margin="dense"
-              name="nome"
-              label="Nome Gruppo"
-              value={formData.nome || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              margin="dense"
-              name="descrizione"
-              label="Descrizione"
-              value={formData.descrizione || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControl fullWidth margin="dense">
-              <InputLabel>Allenatore</InputLabel>
-              <Select
-                name="staffId"
-                label="Allenatore"
-                value={formData.staffId || ""}
+      <DialogContent sx={{ pt: 1 }}>
+        {/* Sezione Dati Principali */}
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+            Dati Principali Gruppo
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size="small"
+                variant="outlined"
+                name="nome"
+                label="Nome Gruppo"
+                value={formData.nome || ""}
                 onChange={handleChange}
-              >
-                <MenuItem value="">
-                  <em>Nessuno</em>
-                </MenuItem>
-                {staff.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.cognome} {s.nome}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size="small"
+                variant="outlined"
+                name="descrizione"
+                label="Descrizione"
+                value={formData.descrizione || ""}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth size="small" variant="outlined">
+                <InputLabel>Allenatore</InputLabel>
+                <Select
+                  name="staffId"
+                  label="Allenatore"
+                  value={formData.staffId || ""}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">
+                    <em>Nessuno</em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  {staff.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.cognome} {s.nome}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
+        </Box>
 
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
-              Giorni e Orari del Gruppo
-            </Typography>
+        {/* Sezione Orari */}
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+            Giorni e Orari del Gruppo
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Button
+            startIcon={<AddCircleOutline />}
+            onClick={handleAddSlot}
+            sx={{ mb: 2 }}
+          >
+            Aggiungi Slot Orario
+          </Button>
 
-            {slots.map((slot, i) => (
-              <Grid
-                container
-                spacing={1}
-                key={i}
-                alignItems="center"
-                sx={{ mb: 1 }}
+          {slots.map((slot, i) => (
+            <Box
+              key={i}
+              sx={{
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                p: 2,
+                mb: 2,
+                position: "relative",
+              }}
+            >
+              <IconButton
+                color="error"
+                onClick={() => handleRemoveSlot(i)}
+                sx={{ position: "absolute", top: 8, right: 8 }}
               >
-                <Grid item xs={12} sm={4}>
-                  <FormControl fullWidth size="small">
+                <Delete />
+              </IconButton>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth variant="outlined">
                     <InputLabel>Giorno</InputLabel>
                     <Select
                       value={slot.giorno}
@@ -131,8 +162,23 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <FormControl fullWidth size="small">
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel>Sede</InputLabel>
+                    <Select
+                      label="Sede"
+                      value={slot.sede || ""}
+                      onChange={(e) =>
+                        handleSlotChange(i, "sede", e.target.value)
+                      }
+                    >
+                      <MenuItem value="Frascati">Frascati</MenuItem>
+                      <MenuItem value="Rocca Priora">Rocca Priora</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth variant="outlined">
                     <InputLabel>Ora Inizio</InputLabel>
                     <Select
                       value={slot.oraInizio}
@@ -149,8 +195,8 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <FormControl fullWidth size="small">
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth variant="outlined">
                     <InputLabel>Ora Fine</InputLabel>
                     <Select
                       value={slot.oraFine}
@@ -167,38 +213,10 @@ function GruppoEditDialog({ open, onClose, onSave, gruppo, staff = [] }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={4}>
-  <FormControl fullWidth margin="dense">
-    <InputLabel>Sede</InputLabel>
-    <Select
-      name="sede"
-      label="Sede"
-      value={formData.sede || ""}
-      onChange={handleChange}
-    >
-      <MenuItem value="Frascati">Frascati</MenuItem>
-      <MenuItem value="Rocca Priora">Rocca Priora</MenuItem>
-    </Select>
-  </FormControl>
-</Grid>
-
-                <Grid item xs={12} sm={2}>
-                  <IconButton color="error" onClick={() => handleRemoveSlot(i)}>
-                    <Delete />
-                  </IconButton>
-                </Grid>
               </Grid>
-            ))}
-
-            <Button
-              startIcon={<AddCircleOutline />}
-              onClick={handleAddSlot}
-              sx={{ mt: 1 }}
-            >
-              Aggiungi Slot
-            </Button>
-          </Grid>
-        </Grid>
+            </Box>
+          ))}
+        </Box>
       </DialogContent>
       <DialogActions sx={{ p: "16px 24px" }}>
         <Button onClick={onClose}>Annulla</Button>
