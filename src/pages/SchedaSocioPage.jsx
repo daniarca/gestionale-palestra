@@ -92,7 +92,7 @@ function SchedaSocioPage({ onDataUpdate }) {
               collection(db, "pagamenti"),
               where("iscrittoId", "==", iscrittoId)
             )
-          ).then((snap) => snap.docs.map((d) => d.data())),
+          ).then((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
           fetchDocumentsByIscrittoId(iscrittoId),
         ]);
         setPagamenti(pagamentiList);
