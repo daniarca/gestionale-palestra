@@ -27,6 +27,24 @@ import LanguageIcon from "@mui/icons-material/Language"; // Icona per il sito we
 
 const updateLog = [
   {
+    version: "0.10.0",
+    date: "17/10/2025",
+    changes: [
+      {
+        type: "IMPROVEMENT",
+        text: "Rinnovata completamente l'interfaccia di creazione e modifica dei gruppi, con un layout più pulito, organizzato e usabile, ispirato alla struttura del form di iscrizione.",
+      },
+      {
+        type: "IMPROVEMENT",
+        text: "Migliorata la gestione degli orari dei gruppi, consentendo a ogni singolo slot di avere una sede indipendente.",
+      },
+      {
+        type: "FIX",
+        text: "Risolto un bug critico che impediva l'eliminazione dei pagamenti dallo storico di un socio a causa di un ID mancante.",
+      },
+    ],
+  },
+  {
     version: "0.9.22",
     date: "06/10/2025",
     changes: [
