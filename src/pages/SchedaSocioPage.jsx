@@ -174,7 +174,7 @@ function SchedaSocioPage({ onDataUpdate }) {
 
   const handleAggiungiPagamento = async (paymentData) => {
     if (!iscritto) return;
-    const { cifra, tipo, mese, metodoPagamento } = paymentData;
+    const { cifra, tipo, mese, metodoPagamento, dataPagamento } = paymentData;
 
     const nuovoPagamento = {
       iscrittoId: iscritto.id,
@@ -182,7 +182,7 @@ function SchedaSocioPage({ onDataUpdate }) {
       cifra: cifra,
       tipo: tipo,
       sede: iscritto.sede || "N/D",
-      dataPagamento: moment().format("YYYY-MM-DD"),
+      dataPagamento: dataPagamento,
       metodoPagamento: metodoPagamento,
     };
 

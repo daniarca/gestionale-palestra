@@ -1,6 +1,7 @@
 // File: src/components/AggiungiPagamentoDialog.jsx
 
 import React, { useState } from 'react';
+import moment from 'moment';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 
 const annoSportivo = [
@@ -15,6 +16,7 @@ function AggiungiPagamentoDialog({ open, onClose, onSave, iscritto }) {
   const [tipoPagamento, setTipoPagamento] = useState('Quota Mensile');
   const [meseSelezionato, setMeseSelezionato] = useState(new Date().getMonth());
   const [metodoPagamento, setMetodoPagamento] = useState('Contanti'); // NUOVO STATO
+  const [dataPagamento, setDataPagamento] = useState(moment().format('YYYY-MM-DD'));
 
   const handleSave = () => {
     if (!cifra || isNaN(cifra) || cifra <= 0) {
@@ -26,19 +28,33 @@ function AggiungiPagamentoDialog({ open, onClose, onSave, iscritto }) {
       cifra: parseFloat(cifra),
       tipo: tipoPagamento,
       mese: tipoPagamento === 'Quota Mensile' ? meseSelezionato : null,
-      metodoPagamento: metodoPagamento // NUOVO CAMPO
+      metodoPagamento: metodoPagamento, // NUOVO CAMPO
+      dataPagamento: dataPagamento
     });
     // Reset
     setCifra('');
     setTipoPagamento('Quota Mensile');
     setMeseSelezionato(new Date().getMonth());
     setMetodoPagamento('Contanti');
+    setDataPagamento(moment().format('YYYY-MM-DD'));
   };
 
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>Nuovo Pagamento per {iscritto?.nome} {iscritto?.cognome}</DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}>
+
+        <TextField
+            margin="dense"
+            label="Data Pagamento"
+            type="date"
+            fullWidth
+            value={dataPagamento}
+            onChange={(e) => setDataPagamento(e.target.value)}
+            InputLabelProps={{
+                shrink: true,
+            }}
+        />
         
         {/* NUOVO SELETTORE METODO DI PAGAMENTO */}
         <FormControl fullWidth margin="dense">
