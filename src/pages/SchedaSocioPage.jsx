@@ -195,36 +195,28 @@ function SchedaSocioPage({ onDataUpdate }) {
     let alertMessage = `Pagamento di tipo "${tipo}" per ${cifra}€ registrato. Metodo: ${metodoPagamento}.`;
 
     if (tipo === "Quota Mensile") {
-      const quotaMensileStandard = iscritto.quotaMensile || 60;
-      const mesiPagati = Math.floor(cifra / quotaMensileStandard);
+      const oggi = moment();
+      const annoCorrente = oggi.year();
+      const meseCorrente = oggi.month(); // mese corrente (0-11)
 
-      if (mesiPagati > 0) {
-        const oggi = moment();
-        const scadenzaAttuale = iscritto.abbonamento?.scadenza
-          ? moment(iscritto.abbonamento.scadenza)
-          : null;
+      // L'anno sportivo inizia a Settembre (mese 8).
+      // Se il mese per cui si paga (mese) è da Gennaio ad Agosto (0-7)
+      // e il mese corrente è da Settembre a Dicembre (8-11),
+      // allora il pagamento si riferisce all'anno solare successivo.
+      const annoRiferimento = (mese < 8 && meseCorrente > 7) ? annoCorrente + 1 : annoCorrente;
 
-        const estensioneDa =
-          scadenzaAttuale && scadenzaAttuale.isAfter(oggi)
-            ? scadenzaAttuale.clone()
-            : oggi.clone();
+      const nuovaScadenzaDate = moment().year(annoRiferimento).month(mese).endOf('month');
+      const nuovaScadenzaString = nuovaScadenzaDate.format("YYYY-MM-DD");
 
-        const nuovaScadenzaDate = estensioneDa
-          .clone()
-          .add(mesiPagati, "months");
-        const nuovaScadenzaString = nuovaScadenzaDate.format("YYYY-MM-DD");
+      datiDaAggiornare.abbonamento = {
+        ...iscritto.abbonamento, // Mantiene eventuali dati pre-esistenti
+        scadenza: nuovaScadenzaString,
+        mesePagato: mese,
+      };
 
-        datiDaAggiornare.abbonamento = {
-          scadenza: nuovaScadenzaString,
-          mesePagato: nuovaScadenzaDate.month(),
-        };
-
-        alertMessage = `Pagamento di ${mesiPagati} mese/i registrato. Nuova scadenza: ${nuovaScadenzaDate.format(
-          "DD/MM/YYYY"
-        )}. Metodo: ${metodoPagamento}.`;
-      } else {
-        alertMessage = `Pagamento di acconto registrato per ${cifra}€. Nessuna modifica alla scadenza. Metodo: ${metodoPagamento}.`;
-      }
+      alertMessage = `Pagamento per il mese di ${nuovaScadenzaDate.format("MMMM")} registrato. Scadenza aggiornata al ${nuovaScadenzaDate.format(
+        "DD/MM/YYYY"
+      )}. Metodo: ${metodoPagamento}.`;
     } else if (tipo === "Iscrizione" || tipo === "Quota Iscrizione") {
       const quotaIscrizionePrecedente =
         parseFloat(iscritto.quotaIscrizione) || 0;
@@ -307,6 +299,26 @@ function SchedaSocioPage({ onDataUpdate }) {
     );
   };
 
+  const getSubscriptionStatus = (scadenza) => {
+    if (!scadenza) {
+      return { text: "Non Attivo", color: "default" };
+    }
+    const oggi = moment();
+    const scadenzaDate = moment(scadenza);
+
+    if (scadenzaDate.isSameOrAfter(oggi, "day")) {
+      return { text: "Attivo", color: "success" };
+    }
+    // Se oggi è dopo la scadenza, ma entro i 7 giorni di tolleranza
+    if (scadenzaDate.clone().add(7, "days").isSameOrAfter(oggi, "day")) {
+      return { text: "In Tolleranza", color: "warning" };
+    }
+    // Se sono passati più di 7 giorni dalla scadenza
+    return { text: "Scaduto", color: "error" };
+  };
+
+
+
   if (loading)
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
@@ -314,6 +326,8 @@ function SchedaSocioPage({ onDataUpdate }) {
       </Box>
     );
   if (!iscritto) return <Typography>Iscritto non trovato.</Typography>;
+
+  const subscriptionStatus = getSubscriptionStatus(iscritto.abbonamento?.scadenza);
 
   const backButtonColor =
     theme.palette.mode === "light"
@@ -429,18 +443,15 @@ function SchedaSocioPage({ onDataUpdate }) {
           <Typography variant="h6" gutterBottom>
             Stato Abbonamento
           </Typography>
-          <Grid container spacing={1} sx={{ mb: 2 }}>
+          <Grid container spacing={1} sx={{ mb: 2 }} alignItems="center">
             <Grid item xs={12} sm={6}>
               <Typography>
-                <strong>Scadenza Abbonamento:</strong>{" "}
+                <strong>Scadenza:</strong>{" "}
                 {formatDate(iscritto.abbonamento?.scadenza)}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Typography>
-                <strong>Ultimo Mese Pagato:</strong>{" "}
-                {getMonthName(iscritto.abbonamento?.mesePagato)}
-              </Typography>
+              <Chip label={subscriptionStatus.text} color={subscriptionStatus.color} sx={{ fontWeight: 'bold' }} />
             </Grid>
           </Grid>
           <Divider sx={{ my: 2 }} />

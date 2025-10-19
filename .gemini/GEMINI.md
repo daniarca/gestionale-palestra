@@ -88,8 +88,3 @@ Utility riutilizzabile per la creazione di file Excel.
 *Documento generato da Gemini Code Assist analizzando il codice sorgente del progetto.*
 
 Spero che questa analisi dettagliata ti sia utile! Se hai bisogno di approfondire qualche aspetto specifico, chiedi pure.
-
-<!--
-[PROMPT_SUGGESTION]Refactoring IscrittoForm.jsx to use a single state object like in IscrittoEditDialog.jsx[/PROMPT_SUGGESTION]
-[PROMPT_SUGGESTION]Create a `src/constants.js` file and move the shared constants there[/PROMPT_SUGGESTION]
-->

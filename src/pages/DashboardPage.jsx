@@ -145,11 +145,12 @@ function DashboardPage({
       return scadenza.isAfter(oggi.clone().add(30, "days"), "day");
     });
 
-    // Filtri abbonamenti scaduti (MANTENUTI)
+    // Filtri abbonamenti scaduti (AGGIORNATO CON TOLLERANZA)
     const abbonamentiScaduti = iscritti.filter((iscritto) => {
       if (!iscritto.abbonamento?.scadenza) return false;
       const scadenza = moment(iscritto.abbonamento.scadenza);
-      return scadenza.isBefore(oggi, "day");
+      // Un abbonamento è considerato scaduto solo se sono passati 7 giorni dalla sua scadenza
+      return scadenza.clone().add(7, "days").isBefore(oggi, "day");
     });
 
     // 1. Dati finanziari (Incasso Totale Complessivo)

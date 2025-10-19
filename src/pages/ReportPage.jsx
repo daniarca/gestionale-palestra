@@ -6,11 +6,13 @@ import { db } from '../firebase.js';
 import {
     Typography, Grid, Box, CircularProgress, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, useTheme, FormControl, Select, MenuItem,
-    InputLabel, TextField, InputAdornment, Tabs, Tab, Button, TablePagination
+    InputLabel, TextField, InputAdornment, Tabs, Tab, Button, TablePagination, IconButton
 } from '@mui/material';
 import SearchIcon from "@mui/icons-material/Search";
 import DownloadIcon from '@mui/icons-material/Download';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { deletePayment } from '../firebase.js';
 import StatCard from '../components/StatCard.jsx';
 import PaidIcon from '@mui/icons-material/Paid';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -57,6 +59,7 @@ function ReportPage({ pagamentiList, iscrittiList = [] }) {
   const [tabValue, setTabValue] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [deletingId, setDeletingId] = useState(null);
 
   const anniDisponibili = useMemo(() => generaAnniSportivi(5), []); // Genera più anni per una migliore selezione
   // FIX: Imposta l'anno corrente (l'ultimo dell'array) come default
@@ -68,13 +71,34 @@ function ReportPage({ pagamentiList, iscrittiList = [] }) {
     setLoading(false);
   }, [pagamentiList]);
 
+  const handleDeletePayment = async (paymentId) => {
+    if (!window.confirm('Sei sicuro di voler eliminare questo pagamento? L\'azione è irreversibile.')) {
+      return;
+    }
+    setDeletingId(paymentId);
+    try {
+      await deletePayment('pagamenti', paymentId);
+      showNotification('Pagamento eliminato con successo!', 'success');
+      // Workaround to refresh data, since ReportPage doesn't own the fetching logic.
+      // A better approach would be to lift the state up or use a global state management library.
+      window.location.reload();
+    } catch (error) {
+      console.error("Errore durante l'eliminazione del pagamento:", error);
+      showNotification(error.message || 'Si è verificato un errore durante l\'eliminazione.', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const stats = useMemo(() => {
     if (!pagamenti.length) return {
-        totaleIncassato: 0, 
+        incassoTotaleStorico: 0,
+        incassoAnnoSelezionato: 0,
+        numTransazioniAnno: 0,
         incassoBonifico: 0, 
         incassoContanti: 0,
-        incassoPerMese: [],
-        incassoPerTipo: [],
+        datiGraficoBarre: [],
+        datiGraficoTorta: [],
         transazioniFiltrateUtente: [],
     };
     
@@ -85,10 +109,18 @@ function ReportPage({ pagamentiList, iscrittiList = [] }) {
     const inizioAnnoSportivo = moment().year(startYear).month(8).date(1).startOf('day'); 
     const fineAnnoSportivo = moment().year(parseInt(endYearStr)).month(5).date(30).endOf('day'); 
 
+    const inizioPeriodoIscrizioni = inizioAnnoSportivo.clone().subtract(2, 'months');
+
     const pagamentiAnnoSportivo = pagamenti.filter(p => {
         if (!p.dataPagamento) return false;
         const dataPagamento = moment(p.dataPagamento);
-        // La transazione deve ricadere nel periodo finanziario Set-Giu per il report annuale
+
+        const isIscrizione = p.tipo && (p.tipo.toLowerCase().includes('iscrizione') || p.tipo.toLowerCase().includes('annuale'));
+
+        if (isIscrizione) {
+            return dataPagamento.isBetween(inizioPeriodoIscrizioni, fineAnnoSportivo, 'day', '[]');
+        }
+
         return dataPagamento.isBetween(inizioAnnoSportivo, fineAnnoSportivo, 'day', '[]');
     });
 
@@ -424,6 +456,7 @@ function ReportPage({ pagamentiList, iscrittiList = [] }) {
                               <TableCell>Sede</TableCell>
                               <TableCell>Metodo</TableCell> {/* NUOVA COLONNA */}
                               <TableCell align="right">Importo</TableCell>
+                              <TableCell align="center">Azioni</TableCell>
                           </TableRow>
                       </TableHead>
                       <TableBody>
@@ -436,11 +469,21 @@ function ReportPage({ pagamentiList, iscrittiList = [] }) {
                                       <TableCell>{p.sede}</TableCell>
                                       <TableCell>{p.metodoPagamento || 'N/D'}</TableCell> {/* NUOVA CELLA */}
                                       <TableCell align="right">{Number(p.cifra).toFixed(2)}€</TableCell>
+                                      <TableCell align="center">
+                                        <IconButton
+                                          aria-label="delete"
+                                          size="small"
+                                          onClick={() => handleDeletePayment(p.id)}
+                                          disabled={deletingId === p.id}
+                                        >
+                                          <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                      </TableCell>
                                   </TableRow>
                               ))
                           ) : (
                               <TableRow>
-                                  <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                                  <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                                       <Typography color="text.secondary">
                                           Nessuna transazione trovata per i criteri selezionati.
                                       </Typography>

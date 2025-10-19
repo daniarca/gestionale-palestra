@@ -39,11 +39,14 @@ const getAbbonamentoStatus = (abbonamento) => {
   if (!abbonamento?.scadenza) return { label: "Non Attivo", color: "default" };
   const oggi = moment();
   const scadenza = moment(abbonamento.scadenza);
-  if (scadenza.isBefore(oggi, "day"))
-    return { label: "Scaduto", color: "error" };
-  if (scadenza.isSameOrAfter(oggi, "day") && scadenza.diff(oggi, "days") <= 7)
-    return { label: "In scadenza", color: "warning" };
-  return { label: "Attivo", color: "success" };
+
+  if (scadenza.isSameOrAfter(oggi, "day")) {
+    return { label: "Attivo", color: "success" };
+  }
+  if (scadenza.clone().add(7, "days").isSameOrAfter(oggi, "day")) {
+    return { label: "In Tolleranza", color: "warning" };
+  }
+  return { label: "Scaduto", color: "error" };
 };
 
 const getScadenzaText = (iscritto, filter) => {

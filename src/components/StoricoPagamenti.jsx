@@ -50,37 +50,40 @@ function StoricoPagamenti({
   const [annoSelezionato, setAnnoSelezionato] = useState(anniDisponibili[1]);
   const [eliminazioneInCorso, setEliminazioneInCorso] = useState(false);
 
-  const datiAnnoSelezionato = useMemo(() => {
+  const { pagamentiPerMese, transazioniVisibili } = useMemo(() => {
     const [startYear] = annoSelezionato.split("/");
     const inizioAnnoSportivo = new Date(parseInt(startYear), 8, 1);
     const fineAnnoSportivo = new Date(parseInt(startYear) + 1, 6, 0);
 
-    const pagamentiFiltrati = pagamenti.filter((p) => {
-      if (!p.dataPagamento) return false;
-      const dataPagamento = new Date(p.dataPagamento);
-      return (
-        dataPagamento >= inizioAnnoSportivo && dataPagamento <= fineAnnoSportivo
-      );
-    });
-
     const pagamentiPerMese = {};
-    pagamentiFiltrati.forEach((p) => {
-      if (
-        typeof p.tipo === "string" &&
-        p.tipo.toLowerCase().includes("mensile")
-      ) {
-        const mese = p.meseRiferimento;
-        if (mese != null) {
-          pagamentiPerMese[mese] = (pagamentiPerMese[mese] || 0) + p.cifra;
+    const transazioniFiltrate = [];
+    const iscrizioni = [];
+
+    pagamenti.forEach((p) => {
+      if (p.tipo && typeof p.tipo === 'string') {
+        if (p.tipo.toLowerCase().includes('iscrizione') || p.tipo.toLowerCase().includes('annuale')) {
+          iscrizioni.push(p);
+        } else if (p.tipo.toLowerCase().includes('mensile')) {
+          const dataPagamento = new Date(p.dataPagamento);
+          if (p.dataPagamento && dataPagamento >= inizioAnnoSportivo && dataPagamento <= fineAnnoSportivo) {
+            transazioniFiltrate.push(p);
+            if (p.meseRiferimento != null) {
+              pagamentiPerMese[p.meseRiferimento] = (pagamentiPerMese[p.meseRiferimento] || 0) + p.cifra;
+            }
+          }
         }
       }
     });
 
-    return { pagamentiFiltrati, pagamentiPerMese };
+    const transazioniVisibili = [...iscrizioni, ...transazioniFiltrate].sort(
+      (a, b) => new Date(b.dataPagamento) - new Date(a.dataPagamento)
+    );
+
+    return { pagamentiPerMese, transazioniVisibili };
   }, [pagamenti, annoSelezionato]);
 
   const getMeseStatus = (meseIndex) => {
-    const totalePagato = datiAnnoSelezionato.pagamentiPerMese[meseIndex] || 0;
+    const totalePagato = pagamentiPerMese[meseIndex] || 0;
     const qm = Number(quotaMensile) || 60;
     if (qm > 0 && totalePagato >= qm)
       return {
@@ -224,14 +227,14 @@ function StoricoPagamenti({
       </Grid>
 
       {/* 🔽 NUOVA SEZIONE: elenco transazioni con possibilità di eliminazione */}
-      {datiAnnoSelezionato.pagamentiFiltrati.length > 0 && (
+      {transazioniVisibili.length > 0 && (
         <>
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle1" gutterBottom>
-            Transazioni registrate ({datiAnnoSelezionato.pagamentiFiltrati.length})
+            Transazioni registrate ({transazioniVisibili.length})
           </Typography>
 
-          {datiAnnoSelezionato.pagamentiFiltrati.map((p) => (
+          {transazioniVisibili.map((p) => (
             <Box
               key={p.id || p.docId}
               sx={{

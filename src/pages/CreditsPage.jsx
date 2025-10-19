@@ -27,6 +27,24 @@ import LanguageIcon from "@mui/icons-material/Language"; // Icona per il sito we
 
 const updateLog = [
   {
+    version: "0.11.0",
+    date: "18/10/2025",
+    changes: [
+      {
+        type: "IMPROVEMENT",
+        text: "Introdotti 7 giorni di tolleranza per gli abbonamenti scaduti, che non vengono più segnalati immediatamente.",
+      },
+      {
+        type: "IMPROVEMENT",
+        text: "Aggiunta la visualizzazione degli abbonamenti in scadenza nei prossimi 7 giorni nella dashboard.",
+      },
+      {
+        type: "FIX",
+        text: "Risolto un problema di leggibilità sulle card interattive nella pagina Crediti, eliminando l'effetto di sfocatura durante l'animazione.",
+      },
+    ],
+  },
+  {
     version: "0.10.0",
     date: "17/10/2025",
     changes: [

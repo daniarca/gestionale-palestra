@@ -133,7 +133,8 @@ function IscrittiPage({
         case "abbonamenti_scaduti":
           baseList = baseList.filter((i) => {
             if (!i.abbonamento?.scadenza) return false;
-            return moment(i.abbonamento.scadenza).isBefore(today, "day");
+            // Aggiunta la logica di tolleranza di 7 giorni
+            return moment(i.abbonamento.scadenza).clone().add(7, 'days').isBefore(today, "day");
           });
           break;
         case "abbonamenti_in_scadenza":
@@ -146,6 +147,13 @@ function IscrittiPage({
             );
           });
           break;
+        case "in_tolleranza":
+            baseList = baseList.filter((i) => {
+              if (!i.abbonamento?.scadenza) return false;
+              const scadenza = moment(i.abbonamento.scadenza);
+              return today.isAfter(scadenza, "day") && scadenza.clone().add(7, 'days').isSameOrAfter(today, "day");
+            });
+            break;
         case "certificati_scaduti":
           baseList = baseList.filter((i) => {
             if (!i.certificatoMedico?.scadenza) return false;
@@ -181,8 +189,14 @@ function IscrittiPage({
       );
     }
 
-    // Ordinamento per cognome
-    return [...baseList].sort((a, b) => a.cognome.localeCompare(b.cognome));
+    // Ordinamento per cognome e nome
+    return [...baseList].sort((a, b) => {
+      const cognomeCompare = a.cognome.localeCompare(b.cognome);
+      if (cognomeCompare !== 0) {
+        return cognomeCompare;
+      }
+      return a.nome.localeCompare(b.nome);
+    });
   }, [iscrittiList, gruppiList, activeFilter, searchTerm, today]);
 
   const isSelected = selectedIds.length > 0;
@@ -310,6 +324,18 @@ function IscrittiPage({
                   }
                   variant={
                     activeFilter === "abbonamenti_scaduti"
+                      ? "filled"
+                      : "outlined"
+                  }
+                />
+                <Chip
+                  label="In Tolleranza"
+                  onClick={() => setActiveFilter("in_tolleranza")}
+                  color={
+                    activeFilter === "in_tolleranza" ? "warning" : "default"
+                  }
+                  variant={
+                    activeFilter === "in_tolleranza"
                       ? "filled"
                       : "outlined"
                   }
